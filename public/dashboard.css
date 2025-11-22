@@ -1,0 +1,178 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+body {
+    background: linear-gradient(to top, #1b3d78c0, #060968);
+    min-height: 100vh;
+}
+
+/* ====== LAYOUT GERAL ====== */
+
+.layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ====== SIDEBAR PADRÃO REMO ====== */
+
+.sidebar {
+    width: 240px;
+    background: #002060;
+    color: #fff;
+    padding: 20px 20px 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar .logo {
+    width: 200px;
+    margin-bottom: 30px;
+}
+
+.sidebar ul {
+    list-style: none;
+}
+
+.sidebar li {
+    margin-bottom: 4px;
+}
+
+.sidebar a {
+    display: block;
+    padding: 12px 18px;
+    color: #fff;
+    text-decoration: none;
+    font-size: 15px;
+    border-radius: 999px;
+    transition: 0.2s;
+}
+
+.sidebar a:hover {
+    background: #003399;
+}
+
+.sidebar a.active {
+    background: #005DFF;
+}
+
+/* ====== CONTEÚDO PRINCIPAL ====== */
+
+.content {
+    flex: 1;
+    padding: 30px 40px;
+    color: white;
+    display: flex;
+    align-items: flex-start;
+}
+
+.container-card {
+    width: 100%;
+    background: rgba(2, 6, 23, 0.75);
+    border-radius: 18px;
+    padding: 22px 24px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ====== HEADER DO DASHBOARD ====== */
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.header h1 {
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.subtitle {
+    font-size: 13px;
+    color: #e5e7eb;
+    margin-top: 4px;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.welcome {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+/* ====== BOTÕES ====== */
+
+button {
+    border: none;
+    border-radius: 999px;
+    padding: 9px 18px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.15s;
+}
+
+.btn-secondary {
+    background: #e5e7eb;
+    color: #111827;
+}
+
+.btn-secondary:hover {
+    background: #d1d5db;
+}
+
+/* Logout em vermelho */
+.btn-logout {
+    background: #e11d48;
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(225, 29, 72, 0.6);
+}
+
+.btn-logout:hover {
+    background: #be123c;
+    box-shadow: 0 12px 26px rgba(225, 29, 72, 0.85);
+}
+
+/* ====== CARDS DO DASHBOARD ====== */
+
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 10px;
+}
+
+.card {
+    background: radial-gradient(circle at top left, #1d4ed8, #020617);
+    border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.9);
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 110px;
+}
+
+.card-label {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #c7d2fe;
+    opacity: 0.9;
+}
+
+.card-value {
+    margin-top: 8px;
+    font-size: 32px;
+    font-weight: 700;
+    color: #e5e7eb;
+}

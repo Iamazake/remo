@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Remo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            
+            /* DEGRADÊ DE BAIXO (CLARO) PARA CIMA (AZUL FORTE) */
+            background: linear-gradient(to top, #3a6ff8, #002060);
+            
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #login-box {
+            background: rgba(255, 255, 255, 0.95);
+            width: 360px;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 0 25px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        #login-box img {
+            width: 180px;
+            margin-bottom: 15px;
+        }
+
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #005aff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #003ec4;
+        }
+
+        #erro {
+            color: red;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+            @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-6px); }
+        to { opacity: 1; transform: translateY(0); }
+        }
+
+        .input-wrapper {
+            position: relative;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            height: 45px;
+            padding: 0 45px 0 12px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 15px;
+            box-sizing: border-box;
+            position: relative;
+            z-index: 1;
+        }
+
+        .icon-eye {
+            position: absolute;
+            right: -70px; /* AGORA VAI FUNCIONAR */
+            top: 50%;
+            transform: translateY(-50%);
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            opacity: 0.7;
+            z-index: 2;
+            pointer-events: auto;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="login-box">
+        <img src="logo-remo.png.jpeg" alt="Logo Remo">
+
+        <div id="erro" style="
+            color:#b30000;
+            margin-bottom:10px;
+            font-size:14px;
+            font-weight:bold;">
+        </div>
+
+        <div id="sucesso" style="
+            display:none; 
+            background:#d4edda; 
+            color:#155724; 
+            padding:12px; 
+            border-radius:8px; 
+            margin-bottom:12px;
+            border:1px solid #c3e6cb;
+            font-size:14px;
+            animation:fadeIn .4s ease;">
+        </div>
+        <div class="input-wrapper">
+            <input type="text" id="usuario" placeholder="Usuário">
+        </div>
+
+        <div class="input-wrapper">
+            <input type="password" id="senha" placeholder="Senha">
+            <img id="icone-olho" src="eye.svg" class="icon-eye" onclick="toggleSenha()">
+        </div>
+
+        <button onclick="login()">Entrar</button>
+    </div>
+
+<script>
+    async function login() {
+        const usuario = document.getElementById("usuario").value;
+        const senha = document.getElementById("senha").value;
+        const erroBox = document.getElementById("erro");
+        const sucessoBox = document.getElementById("sucesso");
+
+
+        // Limpar mensagens anteriores
+        erroBox.innerText = "";
+        sucessoBox.style.display = "none";
+
+        const resp = await fetch("http://localhost:3000/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ usuario, senha })
+        });
+
+        const dados = await resp.json();
+
+        if (resp.status !== 200) {
+            erroBox.innerText = dados.error;
+            return;
+        }
+
+        // Mostrar mensagem de sucesso
+        sucessoBox.style.display = "block";
+        sucessoBox.innerText = "Login realizado com sucesso!";
+
+        // Salvar token e usuário
+        localStorage.setItem("token", dados.token);
+        localStorage.setItem("user", JSON.stringify(dados.user));
+
+        // Redirecionar depois de 1.2s
+        setTimeout(() => {
+            // Depois vamos apontar para o dashboard
+            window.location.href = "/dashboard.html";
+        }, 1200);
+            }
+
+
+            function toggleSenha() {
+            const campo = document.getElementById("senha");
+            const icone = document.getElementById("icone-olho");
+
+            if (campo.type === "password") {
+                campo.type = "text";
+                icone.src = "eye-off.svg";
+            } else {
+                campo.type = "password";
+                icone.src = "eye.svg";
+            }
+        }
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - Remo</title>
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+
+<script>
+    // BLOQUEIA ACESSO SEM LOGIN
+    const token = localStorage.getItem("token");
+    if (!token) {
+        window.location.href = "/login.html";
+    }
+
+    // PEGAR DADOS DO USUÁRIO
+    const usuario = JSON.parse(localStorage.getItem("user") || "{}");
+</script>
+
+<div class="layout">
+    <!-- SIDEBAR PADRÃO REMO -->
+    <aside class="sidebar">
+        <img src="/logosfundo.png" class="logo" alt="Remo Logo">
+
+        <ul>
+            <li><a href="/dashboard.html" class="active">🏠 Dashboard</a></li>
+            <li><a href="/clientes/index.html">👥 Clientes</a></li>
+            <li><a href="/emprestimos/index.html">💰 Empréstimos</a></li>
+            <li><a href="/pagamentos/index.html">📄 Pagamentos</a></li>
+            <li><a href="/relatorios/index.html">📊 Relatórios</a></li>
+        </ul>
+    </aside>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="content">
+        <div class="container-card">
+            <div class="header">
+                <div>
+                    <h1>Dashboard</h1>
+                    <p class="subtitle">Visão geral dos seus clientes, empréstimos e recebimentos.</p>
+                </div>
+
+                <div class="header-right">
+                    <span id="nome-usuario" class="welcome"></span>
+                    <button id="btnLogout" class="btn-secondary btn-logout" onclick="logout()">Sair</button>
+                </div>
+            </div>
+
+            <!-- CARDS RESUMO -->
+            <div class="cards-grid">
+                <div class="card">
+                    <span class="card-label">Clientes</span>
+                    <span class="card-value" id="qtdClientes">0</span>
+                </div>
+
+                <div class="card">
+                    <span class="card-label">Empréstimos Ativos</span>
+                    <span class="card-value" id="qtdEmprestimos">0</span>
+                </div>
+
+                <div class="card">
+                    <span class="card-label">Pagamentos Pendentes</span>
+                    <span class="card-value" id="qtdPendentes">0</span>
+                </div>
+            </div>
+
+            <!-- FUTURO: gráficos, lista de atrasados etc. -->
+        </div>
+    </main>
+</div>
+
+<script>
+    // Preenche nome do usuário
+    const spanUsuario = document.getElementById("nome-usuario");
+    if (usuario && usuario.nome) {
+        spanUsuario.innerText = "Olá, " + usuario.nome;
+    } else {
+        spanUsuario.innerText = "Olá!";
+    }
+
+    // LOGOUT
+    function logout() {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        window.location.href = "/login.html";
+    }
+
+    // FUTURAMENTE AQUI VAI TER: fetch /api/dashboard/resumo
+    // Exemplo:
+    // authFetch('/api/dashboard/resumo').then(...)
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Empréstimos - REMO</title>
+    <link rel="stylesheet" href="emprestimos.css">
+</head>
+<body>
+    <div class="layout">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <img src="/logosfundo.png" class="logo" alt="Logo REMO">
+
+            <ul>
+                <li><a href="/dashboard.html">🏠 Dashboard</a></li>
+                <li><a href="/clientes/index.html">👥 Clientes</a></li>
+                <li><a href="/emprestimos/index.html" class="active">💰 Empréstimos</a></li>
+                <li><a href="/pagamentos/index.html">📄 Pagamentos</a></li>
+                <li><a href="/relatorios/index.html">📊 Relatórios</a></li>
+            </ul>
+        </aside>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="content">
+            <div class="container-card">
+                <div class="header">
+                    <h1>Empréstimos</h1>
+                    <button class="btn-primary" id="btnNovo">+ Novo Empréstimo</button>
+                </div>
+
+                <div class="filtros">
+                    <input type="text" id="filtro" placeholder="Filtrar por cliente ou status...">
+                    <button class="btn-secondary" id="btnBuscar">Buscar</button>
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Cliente</th>
+                                <th>Valor Total</th>
+                                <th>Parcelas</th>
+                                <th>Valor Parcela</th>
+                                <th>Taxa (%)</th>
+                                <th>Status</th>
+                                <th>Início</th>
+                                <th>Dia Venc.</th>
+                                <th>Data Fim</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lista-emprestimos">
+                            <!-- preenchido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL -->
+    <div id="modal" class="modal oculto">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="titulo-form">Novo Empréstimo</h2>
+                <button class="modal-close" id="btnFecharModal">&times;</button>
+            </div>
+
+            <form id="form-emprestimo">
+                <input type="hidden" id="id">
+
+                <label for="cliente_id">Cliente:</label>
+                <select id="cliente_id" required>
+                    <!-- preenchido via JS -->
+                </select>
+
+                <label for="valor_total">Valor total (R$):</label>
+                <input type="number" step="0.01" id="valor_total" required>
+
+                <label for="taxa">Taxa de juros (% ao mês):</label>
+                <input type="number" step="0.01" id="taxa" required>
+
+                <label for="parcelas">Quantidade de parcelas:</label>
+                <input type="number" id="parcelas" min="1" required>
+
+                <label for="data_inicio">Data de início:</label>
+                <input type="date" id="data_inicio" required>
+
+                <label for="dia_vencimento">Dia do vencimento:</label>
+                <input type="number" id="dia_vencimento" min="1" max="31" required>
+
+                <label for="status">Status:</label>
+                <select id="status">
+                    <option value="ativo">Ativo</option>
+                    <option value="finalizado">Finalizado</option>
+                    <option value="atrasado">Atrasado</option>
+                    <option value="cancelado">Cancelado</option>
+                </select>
+
+                <label for="observacoes">Observações:</label>
+                <textarea id="observacoes" rows="3"></textarea>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="btnCancelar">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="emprstimos.js"></script>
+</body>
+</html>
