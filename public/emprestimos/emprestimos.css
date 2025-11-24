@@ -339,3 +339,10 @@ tr:hover {
     gap: 10px;
     margin-top: 18px;
 }
+
+.texto-recomendacao {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: #8BB8FF; /* azulzinho suave */
+}

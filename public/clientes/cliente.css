@@ -247,7 +247,8 @@ tr:hover {
 }
 
 .modal-content input,
-.modal-content textarea {
+.modal-content textarea,
+.modal-content select {
     width: 100%;
     padding: 10px;
     border-radius: 8px;
@@ -258,6 +259,7 @@ tr:hover {
     font-size: 14px;
 }
 
+
 .modal-content textarea {
     resize: vertical;
 }
@@ -267,4 +269,8 @@ tr:hover {
     justify-content: flex-end;
     gap: 10px;
     margin-top: 18px;
+}
+.erro-campo {
+    color: #f97373;
+    font-size: 12px;
 }

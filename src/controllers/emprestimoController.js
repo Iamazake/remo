@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const { calcularRecomendacaoEmprestimo } = require('../services/creditoService');
 
 // ========================= FUNÇÕES UTIL =========================
 
@@ -324,10 +325,48 @@ async function excluirEmprestimo(req, res) {
   }
 }
 
+// GET /api/emprestimos/recomendacao/:clienteId
+async function recomendarPorCliente(req, res) {
+  try {
+    const { clienteId } = req.params;
+
+    // Busca renda e situação profissional do cliente
+    const [rows] = await db.query(
+      "SELECT renda_mensal, situacao_profissional FROM clientes WHERE id = ?",
+      [clienteId]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ error: "Cliente não encontrado." });
+    }
+
+    const cliente = rows[0];
+
+    const rec = calcularRecomendacaoEmprestimo(
+      cliente.renda_mensal,
+      cliente.situacao_profissional
+    );
+
+    return res.json({
+      clienteId,
+      renda_mensal: cliente.renda_mensal,
+      situacao_profissional: cliente.situacao_profissional,
+      valor_recomendado: rec.valor,
+      parcela_maxima: rec.parcelaMaxima
+    });
+
+  } catch (err) {
+    console.error("Erro ao recomendar empréstimo:", err);
+    return res.status(500).json({ error: "Erro ao recomendar empréstimo." });
+  }
+}
+
+
 module.exports = {
   listarEmprestimos,
   buscarEmprestimoPorId,
   criarEmprestimo,
   atualizarEmprestimo,
-  excluirEmprestimo
+  excluirEmprestimo,
+  recomendarPorCliente
 };

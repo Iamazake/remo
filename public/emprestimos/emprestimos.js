@@ -3,6 +3,7 @@ const API_CLIENTES = '/api/clientes';
 
 const token = localStorage.getItem('token');
 
+
 // se não tiver token, volta pro login
 if (!token) {
   window.location.href = '/login.html';
@@ -14,7 +15,6 @@ function authFetch(url, options = {}) {
   headers['Authorization'] = `Bearer ${token}`;
   return fetch(url, { ...options, headers });
 }
-
 
 const listaEl = document.getElementById('lista-emprestimos');
 const btnNovo = document.getElementById('btnNovo');
@@ -268,6 +268,56 @@ async function onClickTabela(event) {
     }
   }
 }
+// -------- Recomendação de empréstimo --------
+
+async function carregarRecomendacaoCliente() {
+  const info = document.getElementById('recomendacao-texto');
+  if (!info) return; // segurança
+
+  const clienteId = campoCliente.value;
+
+  info.textContent = '';
+
+  if (!clienteId) return;
+
+  try {
+    const resp = await authFetch(`${API_EMPRESTIMOS}/recomendacao/${clienteId}`);
+
+    if (!resp.ok) {
+      throw new Error('Falha ao buscar recomendação');
+    }
+
+    const data = await resp.json();
+
+    const valor = Number(data.valor_recomendado || 0);
+    const parcela = Number(data.parcela_maxima || 0);
+
+    if (valor > 0 && parcela > 0) {
+      // preenche o campo de valor total com a sugestão
+      campoValorTotal.value = valor;
+
+      const valorFmt = Number(valor).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      });
+
+      const parcelaFmt = Number(parcela).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      });
+
+      info.textContent = `Sugestão de crédito: ${valorFmt} (parcela máxima: ${parcelaFmt}/mês).`;
+    } else {
+      info.textContent = 'Sem recomendação automática para esse cliente.';
+    }
+
+  } catch (err) {
+    console.error(err);
+    info.textContent = 'Não foi possível carregar a recomendação.';
+  }
+}
+
+
 
 // -------- Eventos --------
 
@@ -280,6 +330,7 @@ btnBuscar.addEventListener('click', renderTabela);
 filtroInput.addEventListener('keyup', e => {
   if (e.key === 'Enter') renderTabela();
 });
+campoCliente.addEventListener('change', carregarRecomendacaoCliente);
 
 // -------- Init --------
 

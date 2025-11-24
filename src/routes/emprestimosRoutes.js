@@ -3,6 +3,7 @@ const router = express.Router();
 const emprestimoController = require('../controllers/emprestimoController');
 
 router.get('/', emprestimoController.listarEmprestimos);
+router.get('/recomendacao/:clienteId', emprestimoController.recomendarPorCliente);
 router.get('/:id', emprestimoController.buscarEmprestimoPorId);
 router.post('/', emprestimoController.criarEmprestimo);
 router.put('/:id', emprestimoController.atualizarEmprestimo);
