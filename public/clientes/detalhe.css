@@ -1,0 +1,227 @@
+/* Área principal da tela de detalhe de cliente */
+.content-cliente-detalhe {
+    max-width: 1120px;           /* largura máxima do bloco central */
+    margin: 0 auto 40px auto;    /* centra na horizontal */
+    padding-top: 32px;           /* respiro do topo */
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+/* topo da página: título + botão voltar */
+.topo-pagina {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.topo-pagina h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.btn-voltar-lista {
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.9);
+    color: #e5e7eb;
+    text-decoration: none;
+    font-size: 13px;
+    border: 1px solid rgba(148, 163, 184, 0.5);
+}
+
+.btn-voltar-lista:hover {
+    background: rgba(30, 64, 175, 0.9);
+    border-color: #3b82f6;
+}
+
+/* grid com 2 cards lado a lado */
+.grid-detalhe {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.6fr);
+    gap: 24px;
+    align-items: stretch;
+    width: 100%;
+    margin-top: 8px;
+}
+
+/* Card genérico (dados + empréstimos) */
+.card-detalhe {
+    background: radial-gradient(circle at top left, #111827, #020617);
+    border-radius: 24px;
+    padding: 22px 24px;
+    box-shadow: 0 22px 50px rgba(15, 23, 42, 0.95);
+    color: #e5e7eb;
+    font-size: 14px;
+    min-height: 280px;                          /* deixa mais alto */
+    border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.card-detalhe h2 {
+    font-size: 16px;
+    margin-bottom: 12px;
+}
+
+/* bloco de loading */
+#bloco-loading {
+    margin-top: 12px;
+}
+
+/* linhas de dados do cliente */
+.dados-cliente {
+    margin-bottom: 14px;
+}
+
+.dados-cliente p {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    gap: 12px;
+}
+
+.dados-cliente p span:first-child {
+    font-weight: 500;
+    color: #9ca3af;
+}
+
+.dados-cliente p span:last-child {
+    font-weight: 500;
+}
+
+/* mini cards de resumo (empréstimos, ativos, atrasadas) */
+.resumo-blocos {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.resumo-item {
+    flex: 1;
+    background: rgba(15, 23, 42, 0.95);
+    border-radius: 16px;
+    padding: 8px 10px;
+    text-align: center;
+    border: 1px solid rgba(15, 23, 42, 0.9);
+}
+
+.resumo-item .lbl {
+    display: block;
+    font-size: 11px;
+    color: #9ca3af;
+    margin-bottom: 4px;
+}
+
+.resumo-item strong {
+    font-size: 16px;
+}
+
+.resumo-alerta {
+    border: 1px solid rgba(239, 68, 68, 0.5);
+}
+
+
+/* cabeçalho do card de empréstimos */
+.cabecalho-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.cabecalho-card h2 {
+    font-size: 16px;
+}
+
+.btn-primary-mini {
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: #005dff;
+    color: #fff;
+    text-decoration: none;
+    font-size: 13px;
+    box-shadow: 0 14px 30px rgba(37, 99, 235, 0.7);
+}
+
+.btn-primary-mini:hover {
+    background: #2563eb;
+}
+
+/* mensagem quando não tem empréstimo */
+.msg-vazio {
+    font-size: 13px;
+    color: #9ca3af;
+}
+
+/* tabela interna de empréstimos */
+.tabela-emprestimos table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.tabela-emprestimos th,
+.tabela-emprestimos td {
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid rgba(30, 41, 59, 0.8);
+}
+
+.tabela-emprestimos th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #9ca3af;
+}
+
+.tabela-emprestimos tbody tr:hover {
+    background: rgba(15, 23, 42, 0.9);
+}
+
+
+/* APROVEITANDO OS BADGES JÁ EXISTENTES NA LISTA */
+.badge-cliente {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 500;
+    background: rgba(148, 163, 184, 0.18);
+    color: #e5e7eb;
+}
+
+.dot-risk {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    display: inline-block;
+}
+
+.dot-low {
+    background: #22c55e;
+}
+
+.dot-medium {
+    background: #eab308;
+}
+
+.dot-high {
+    background: #ef4444;
+}
+
+.badge-low {
+    background: rgba(34, 197, 94, 0.12);
+    color: #bbf7d0;
+}
+
+.badge-medium {
+    background: rgba(234, 179, 8, 0.12);
+    color: #fef3c7;
+}
+
+.badge-high {
+    background: rgba(239, 68, 68, 0.14);
+    color: #fecaca;
+}

@@ -30,17 +30,30 @@
             </div>
 
             <div class="table-wrapper">
+                <div class="toolbar-clientes">
+                    <input 
+                      id="filtroCliente" 
+                      type="search" 
+                      placeholder="Buscar por nome, CPF ou telefone..."
+                    >
+                  </div>
+                  
                 <table>
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Nome</th>
-                            <th>CPF</th>
-                            <th>Telefone</th>
-                            <th>Ações</th>
+                          <th>ID</th>
+                          <th>Nome</th>
+                          <th>CPF</th>
+                          <th>Telefone</th>
+                          <th>Renda mensal</th>
+                          <th>Situação prof.</th>
+                          <th>Status</th>
+                          <th>Desde</th>
+                          <th>Empréstimos</th>
+                          <th class="col-acoes">Ações</th>
                         </tr>
-                    </thead>
-                    <tbody>
+                      </thead>                      
+                    <tbody>                
                         <!-- preenchido pelo clientes.js -->
                     </tbody>
                 </table>

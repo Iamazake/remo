@@ -74,24 +74,136 @@ async function criarCliente(req, res) {
 // ======================== LISTAR CLIENTES ========================
 async function listarClientes(req, res) {
     try {
-        const [rows] = await db.query(`
-            SELECT 
-                id,
-                nome,
-                cpf,
-                telefone,
-                renda_mensal,
-                situacao_profissional
-            FROM clientes
-            ORDER BY id DESC
-        `);
-
-        res.json(rows);
+      const sql = `
+        SELECT
+          c.id,
+          c.nome,
+          c.cpf,
+          c.telefone,
+          c.renda_mensal,
+          c.situacao_profissional,
+          c.data_cadastro,
+  
+          -- total de empréstimos do cliente
+          (
+            SELECT COUNT(*)
+            FROM emprestimos e
+            WHERE e.cliente_id = c.id
+          ) AS total_emprestimos,
+  
+          -- quantos empréstimos estão ativos
+          (
+            SELECT COUNT(*)
+            FROM emprestimos e
+            WHERE e.cliente_id = c.id
+              AND e.status = 'ativo'
+          ) AS emprestimos_ativos,
+  
+          -- qtd de parcelas atrasadas (não pagas e com data_prevista < hoje)
+          (
+            SELECT COUNT(*)
+            FROM pagamentos p
+            JOIN emprestimos e2 ON e2.id = p.emprestimo_id
+            WHERE e2.cliente_id = c.id
+              AND p.status <> 'pago'
+              AND p.data_prevista < CURDATE()
+          ) AS parcelas_atrasadas
+  
+        FROM clientes c
+        ORDER BY c.id DESC
+      `;
+  
+      const [rows] = await db.query(sql);
+  
+      const normalizados = rows.map(r => ({
+        ...r,
+        total_emprestimos: r.total_emprestimos || 0,
+        emprestimos_ativos: r.emprestimos_ativos || 0,
+        parcelas_atrasadas: r.parcelas_atrasadas || 0
+      }));
+  
+      res.json(normalizados);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro ao listar clientes." });
+      console.error("Erro ao listar clientes:", err);
+      res.status(500).json({ error: "Erro ao listar clientes." });
     }
-}
+  }
+  
+
+  // ======================== DETALHES DO CLIENTE ========================
+async function detalhesCliente(req, res) {
+    try {
+      const id = req.params.id;
+  
+      // 1) dados do cliente + resumo
+      const sqlCliente = `
+        SELECT
+          c.id,
+          c.nome,
+          c.cpf,
+          c.telefone,
+          c.renda_mensal,
+          c.situacao_profissional,
+          c.data_cadastro,
+  
+          (
+            SELECT COUNT(*)
+            FROM emprestimos e
+            WHERE e.cliente_id = c.id
+          ) AS total_emprestimos,
+  
+          (
+            SELECT COUNT(*)
+            FROM emprestimos e
+            WHERE e.cliente_id = c.id
+              AND e.status = 'ativo'
+          ) AS emprestimos_ativos,
+  
+          (
+            SELECT COUNT(*)
+            FROM pagamentos p
+            JOIN emprestimos e2 ON e2.id = p.emprestimo_id
+            WHERE e2.cliente_id = c.id
+              AND p.status <> 'pago'
+              AND p.data_prevista < CURDATE()
+          ) AS parcelas_atrasadas
+        FROM clientes c
+        WHERE c.id = ?
+        LIMIT 1
+      `;
+  
+      const [rowsCliente] = await db.query(sqlCliente, [id]);
+      if (!rowsCliente.length) {
+        return res.status(404).json({ error: "Cliente não encontrado." });
+      }
+      const cliente = {
+        ...rowsCliente[0],
+        total_emprestimos: rowsCliente[0].total_emprestimos || 0,
+        emprestimos_ativos: rowsCliente[0].emprestimos_ativos || 0,
+        parcelas_atrasadas: rowsCliente[0].parcelas_atrasadas || 0,
+      };
+  
+      // 2) lista de empréstimos do cliente
+      const sqlEmp = `
+        SELECT
+          e.id,
+          e.valor_total,
+          e.parcelas,
+          e.data_inicio,
+          e.status
+        FROM emprestimos e
+        WHERE e.cliente_id = ?
+        ORDER BY e.id DESC
+      `;
+      const [emprestimos] = await db.query(sqlEmp, [id]);
+  
+      res.json({ cliente, emprestimos });
+    } catch (err) {
+      console.error("Erro em detalhesCliente:", err);
+      res.status(500).json({ error: "Erro ao obter detalhes do cliente." });
+    }
+  }
+  
 
 
 
@@ -164,5 +276,6 @@ module.exports = {
     listarClientes,
     buscarCliente,
     editarCliente,
-    excluirCliente
+    excluirCliente,
+    detalhesCliente
 };

@@ -9,5 +9,7 @@ router.get("/", auth, clientesController.listarClientes);
 router.get("/:id", auth, clientesController.buscarCliente);
 router.put("/:id", auth, clientesController.editarCliente);
 router.delete("/:id", auth, clientesController.excluirCliente);
+router.get('/', clientesController.listarClientes);
+router.get('/:id/detalhes', clientesController.detalhesCliente);
 
 module.exports = router;

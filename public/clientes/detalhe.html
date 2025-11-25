@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Detalhe do Cliente - Remo</title>
+    <link rel="stylesheet" href="/clientes/cliente.css">
+    <link rel="stylesheet" href="/clientes/detalhe.css">
+</head>
+<body>
+    <div class="layout">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <img src="/logosfundo.png" class="logo">
+
+            <ul>
+                <li><a href="/dashboard.html">🏠Dashboard</a></li>
+                <li><a href="/clientes/index.html" class="active">👥Clientes</a></li>
+                <li><a href="/emprestimos/index.html">💰Empréstimos</a></li>
+                <li><a href="/pagamentos/index.html">📄Pagamentos</a></li>
+                <li><a href="/relatorios/index.html">📊Relatórios</a></li>
+            </ul>
+        </aside>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="content content-cliente-detalhe">
+            <div class="topo-pagina">
+                <h1 id="titulo-cliente">Cliente</h1>
+                <a href="/clientes/index.html" class="btn-voltar-lista">← Voltar para lista</a>
+            </div>
+
+            <div id="bloco-loading" class="card-detalhe">
+                Carregando informações do cliente...
+            </div>
+
+            <div id="bloco-detalhes" class="grid-detalhe" style="display:none;">
+                <!-- CARD ESQUERDA: INFO DO CLIENTE -->
+                <section class="card-detalhe">
+                    <h2>Dados do cliente</h2>
+                    <div class="dados-cliente">
+                        <p><span>Nome:</span> <span id="dc-nome"></span></p>
+                        <p><span>CPF:</span> <span id="dc-cpf"></span></p>
+                        <p><span>Telefone:</span> <span id="dc-telefone"></span></p>
+                        <p><span>Renda mensal:</span> <span id="dc-renda"></span></p>
+                        <p><span>Situação profissional:</span> <span id="dc-situacao"></span></p>
+                        <p><span>Desde:</span> <span id="dc-desde"></span></p>
+                        <p><span>Status:</span> <span id="dc-status"></span></p>
+                    </div>
+
+                    <div class="resumo-blocos">
+                        <div class="resumo-item">
+                            <span class="lbl">Empréstimos</span>
+                            <strong id="dc-total-emp">0</strong>
+                        </div>
+                        <div class="resumo-item">
+                            <span class="lbl">Ativos</span>
+                            <strong id="dc-ativos">0</strong>
+                        </div>
+                        <div class="resumo-item resumo-alerta">
+                            <span class="lbl">Parcelas atrasadas</span>
+                            <strong id="dc-atrasadas">0</strong>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- CARD DIREITA: LISTA DE EMPRÉSTIMOS -->
+                <section class="card-detalhe">
+                    <div class="cabecalho-card">
+                        <h2>Empréstimos do cliente</h2>
+                        <a id="btn-novo-emprestimo" href="#" class="btn-primary-mini">
+                            + Novo empréstimo
+                        </a>
+                    </div>
+
+                    <div id="area-sem-emprestimo" class="msg-vazio">
+                        Nenhum empréstimo encontrado para este cliente.
+                    </div>
+
+                    <div id="area-com-emprestimo" class="tabela-emprestimos" style="display:none;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Valor total</th>
+                                    <th>Parcelas</th>
+                                    <th>Iniciado em</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-emprestimos">
+                                <!-- preenchido pelo JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="/clientes/detalhe.js"></script>
+</body>
+</html>

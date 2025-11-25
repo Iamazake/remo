@@ -126,23 +126,57 @@ button {
 }
 
 /* Botõezinhos de ação na tabela (Editar/Excluir) */
-table .btn-acao {
-    padding: 6px 12px;
-    font-size: 13px;
-    box-shadow: 0 8px 18px rgba(0, 93, 255, 0.55);
-    margin-right: 6px;
+/* Coluna de ações encostada à direita */
+.col-acoes {
+    text-align: right;
+    white-space: nowrap;
 }
 
-table .btn-acao.excluir {
+/* Botões de ação só com ícone */
+.btn-acao {
+    border: none;
+    border-radius: 999px;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: #005DFF;
+    color: white;
+    font-size: 16px;
+    box-shadow: 0 8px 18px rgba(0, 93, 255, 0.55);
+    transition: 0.15s;
+    margin-left: 6px;
+}
+
+.btn-acao:hover {
+    background: #003EB3;
+    transform: translateY(-1px);
+    box-shadow: 0 12px 26px rgba(0, 93, 255, 0.8);
+}
+
+.btn-acao.excluir {
     background: #e11d48;
     box-shadow: 0 8px 18px rgba(225, 29, 72, 0.6);
 }
 
-table .btn-acao.excluir:hover {
+.btn-acao.excluir:hover {
     background: #be123c;
     box-shadow: 0 12px 26px rgba(225, 29, 72, 0.85);
 }
 
+
+/* “Pílula” da situação profissional */
+.tag-situacao {
+    display: inline-flex;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #1f293733;  /* azulzinho bem leve */
+    color: #bfdbfe;
+}
 /* ====== TABELA ====== */
 
 .table-wrapper {
@@ -173,12 +207,84 @@ th {
     letter-spacing: 1px;
 }
 
+tbody tr {
+    transition: background 0.12s, transform 0.12s;
+}
+
+tbody tr:hover {
+    background: rgba(15, 23, 42, 0.9);
+    transform: translateY(-1px);
+}
+
+
 tr:nth-child(even) {
     background: rgba(255, 255, 255, 0.03);
 }
 
 tr:hover {
     background: rgba(255, 255, 255, 0.09);
+}
+
+
+.tag-situacao {
+    display: inline-flex;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 500;
+    background: rgba(59, 130, 246, 0.16);
+    color: #bfdbfe;
+}
+
+.badge-cliente {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 500;
+    background: rgba(148, 163, 184, 0.18);
+    color: #e5e7eb;
+}
+
+.dot-risk {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    display: inline-block;
+}
+
+.dot-low {
+    background: #22c55e;   /* verde */
+}
+
+.dot-medium {
+    background: #eab308;   /* amarelo */
+}
+
+.dot-high {
+    background: #ef4444;   /* vermelho */
+}
+
+.badge-low {
+    background: rgba(34, 197, 94, 0.12);
+    color: #bbf7d0;
+}
+
+.badge-medium {
+    background: rgba(234, 179, 8, 0.12);
+    color: #fef3c7;
+}
+
+.badge-high {
+    background: rgba(239, 68, 68, 0.14);
+    color: #fecaca;
+}
+
+.txt-emprestimos {
+    font-size: 12px;
+    color: #cbd5f5;
 }
 
 /* ====== MODAL ====== */
@@ -273,4 +379,41 @@ tr:hover {
 .erro-campo {
     color: #f97373;
     font-size: 12px;
+}
+.toolbar-clientes {
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.toolbar-clientes input {
+    width: 260px;
+    max-width: 100%;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.6);
+    background: rgba(15, 23, 42, 0.8);
+    color: #e5e7eb;
+    font-size: 13px;
+    outline: none;
+}
+
+.toolbar-clientes input::placeholder {
+    color: #64748b;
+}
+
+.toolbar-clientes input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.6);
+}
+
+.link-cliente {
+    color: #e5e7eb;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.link-cliente:hover {
+    text-decoration: underline;
+    color: #93c5fd;
 }
