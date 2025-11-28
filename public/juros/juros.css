@@ -1,0 +1,50 @@
+@import url("../emprestimos/emprestimos.css");
+
+.grid-faixas {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  margin-bottom: 12px;
+}
+
+.grid-faixas th,
+.grid-faixas td {
+  border: 1px solid #2c2c3a;
+  padding: 6px 8px;
+  font-size: 0.9rem;
+}
+
+.grid-faixas input {
+  width: 100%;
+}
+
+.badge-ativo {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: #1f9d55;
+  color: #fff;
+}
+
+.badge-inativo {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: #b91c1c;
+  color: #fff;
+}
+.checkbox-inline {
+  display: flex;
+  align-items: center;   /* centraliza verticalmente o checkbox */
+  gap: 8px;
+  margin: 8px 0;
+  font-size: 0.9rem;
+}
+
+.checkbox-inline input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}

@@ -1,76 +1,198 @@
 const db = require("../config/db");
+const dominiosService = require("../services/dominiosService");
+const {
+  toNullableDecimal,
+  toNullableInt,
+} = require("../utils/valueHelpers");
+
+async function validarDominioOpcional(tipoDominio, valor, mensagemErro) {
+  if (!valor) return null;
+  const valido = await dominiosService.validarDominio(tipoDominio, valor);
+  if (!valido) {
+    const error = new Error(mensagemErro);
+    error.statusCode = 400;
+    throw error;
+  }
+  return valor;
+}
 
 // ======================== CRIAR CLIENTE ========================
 async function criarCliente(req, res) {
-    try {
-        let {
-            nome,
-            cpf,
-            rg,
-            data_nascimento,
-            telefone,
-            renda_mensal,
-            situacao_profissional,
-            endereco,
-            cidade,
-            estado,
-            cep,
-            observacoes
-        } = req.body;
+  try {
+    let {
+      nome,
+      cpf,
+      rg,
+      data_nascimento,
+      telefone,
+      renda_mensal,
+      situacao_profissional,
+      endereco,
+      cidade,
+      estado,
+      cep,
+      tipo_residencia,
+      tempo_residencia_meses,
+      observacoes,
+      genero,
+      estado_civil,
+      escolaridade,
+      numero_dependentes,
+      nacionalidade,
+      rg_orgao_emissor,
+      rg_uf,
+      rg_data_expedicao,
+      nome_pai,
+      nome_mae,
+    } = req.body;
 
-        if (!nome || !cpf) {
-            return res.status(400).json({ error: "Nome e CPF são obrigatórios." });
-        }
-
-        // CPF: só números
-        cpf = String(cpf).replace(/\D/g, "");
-
-        // Renda mensal: normaliza / valida (aceita vazio)
-        if (renda_mensal !== undefined && renda_mensal !== null && renda_mensal !== "") {
-            renda_mensal = String(renda_mensal).replace(",", ".");
-            renda_mensal = Number(renda_mensal);
-            if (Number.isNaN(renda_mensal) || renda_mensal < 0) {
-                return res.status(400).json({ error: "Renda mensal inválida." });
-            }
-        } else {
-            renda_mensal = null;
-        }
-
-        const sql = `
-            INSERT INTO clientes
-            (nome, cpf, rg, data_nascimento, telefone, renda_mensal, situacao_profissional,
-             endereco, cidade, estado, cep, observacoes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `;
-
-        await db.query(sql, [
-            nome,
-            cpf,
-            rg || null,
-            data_nascimento || null,
-            telefone || null,
-            renda_mensal,
-            situacao_profissional || null,
-            endereco || null,
-            cidade || null,
-            estado || null,
-            cep || null,
-            observacoes || null
-        ]);
-
-        return res.json({ msg: "Cliente cadastrado com sucesso!" });
-
-    } catch (err) {
-        console.error(err);
-
-        if (err.code === "ER_DUP_ENTRY") {
-            return res.status(400).json({ error: "CPF já cadastrado para outro cliente." });
-        }
-
-        return res.status(500).json({ error: "Erro ao cadastrar cliente." });
+    if (!nome || !cpf) {
+      return res
+        .status(400)
+        .json({ error: "Nome e CPF s�o obrigat�rios." });
     }
-}
 
+    cpf = String(cpf).replace(/\D/g, "");
+
+    const rendaNormalizada = toNullableDecimal(renda_mensal);
+    if (
+      renda_mensal !== undefined &&
+      renda_mensal !== null &&
+      renda_mensal !== "" &&
+      rendaNormalizada === null
+    ) {
+      return res.status(400).json({ error: "Renda mensal inv�lida." });
+    }
+    renda_mensal = rendaNormalizada;
+
+    const tempoResidencia = toNullableInt(tempo_residencia_meses);
+    if (
+      tempo_residencia_meses !== undefined &&
+      tempo_residencia_meses !== null &&
+      tempo_residencia_meses !== "" &&
+      tempoResidencia === null
+    ) {
+      return res
+        .status(400)
+        .json({ error: "Tempo de resid�ncia inv�lido." });
+    }
+    tempo_residencia_meses = tempoResidencia;
+
+    const dependentesNormalizado = toNullableInt(numero_dependentes);
+    if (
+      numero_dependentes !== undefined &&
+      numero_dependentes !== null &&
+      numero_dependentes !== "" &&
+      dependentesNormalizado === null
+    ) {
+      return res
+        .status(400)
+        .json({ error: "N�mero de dependentes inv�lido." });
+    }
+    numero_dependentes = dependentesNormalizado;
+
+    tipo_residencia = await validarDominioOpcional(
+      "dom_tipo_residencia",
+      tipo_residencia,
+      "Tipo de resid�ncia inv�lido."
+    );
+    genero = await validarDominioOpcional(
+      "dom_genero",
+      genero,
+      "G�nero inv�lido."
+    );
+    estado_civil = await validarDominioOpcional(
+      "dom_estado_civil",
+      estado_civil,
+      "Estado civil inv�lido."
+    );
+    escolaridade = await validarDominioOpcional(
+      "dom_escolaridade",
+      escolaridade,
+      "Escolaridade inv�lida."
+    );
+    situacao_profissional = await validarDominioOpcional(
+      "dom_situacao_profissional",
+      situacao_profissional,
+      "Situa��o profissional inv�lida."
+    );
+
+    const sql = `
+      INSERT INTO clientes (
+        nome,
+        cpf,
+        rg,
+        data_nascimento,
+        telefone,
+        renda_mensal,
+        situacao_profissional,
+        endereco,
+        cidade,
+        estado,
+        cep,
+        tipo_residencia,
+        tempo_residencia_meses,
+        observacoes,
+        genero,
+        estado_civil,
+        escolaridade,
+        numero_dependentes,
+        nacionalidade,
+        rg_orgao_emissor,
+        rg_uf,
+        rg_data_expedicao,
+        nome_pai,
+        nome_mae
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    const [resultado] = await db.query(sql, [
+      nome,
+      cpf,
+      rg || null,
+      data_nascimento || null,
+      telefone || null,
+      renda_mensal,
+      situacao_profissional || null,
+      endereco || null,
+      cidade || null,
+      estado || null,
+      cep || null,
+      tipo_residencia || null,
+      tempo_residencia_meses,
+      observacoes || null,
+      genero || null,
+      estado_civil || null,
+      escolaridade || null,
+      numero_dependentes,
+      nacionalidade || null,
+      rg_orgao_emissor || null,
+      rg_uf || null,
+      rg_data_expedicao || null,
+      nome_pai || null,
+      nome_mae || null,
+    ]);
+
+    return res
+      .status(201)
+      .json({ id: resultado.insertId, msg: "Cliente cadastrado com sucesso!" });
+  } catch (err) {
+    console.error(err);
+
+    if (err.code === "ER_DUP_ENTRY") {
+      return res
+        .status(400)
+        .json({ error: "CPF j� cadastrado para outro cliente." });
+    }
+
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ error: err.message });
+    }
+
+    return res.status(500).json({ error: "Erro ao cadastrar cliente." });
+  }
+}
 // ======================== LISTAR CLIENTES ========================
 async function listarClientes(req, res) {
     try {
@@ -83,7 +205,20 @@ async function listarClientes(req, res) {
           c.renda_mensal,
           c.situacao_profissional,
           c.data_cadastro,
-  
+          c.genero,
+          c.estado_civil,
+          c.escolaridade,
+          c.numero_dependentes,
+          c.nacionalidade,
+          c.rg,
+          c.rg_orgao_emissor,
+          c.rg_uf,
+          c.rg_data_expedicao,
+          c.nome_pai,
+          c.nome_mae,
+          
+        
+
           -- total de empréstimos do cliente
           (
             SELECT COUNT(*)
@@ -145,6 +280,17 @@ async function detalhesCliente(req, res) {
           c.renda_mensal,
           c.situacao_profissional,
           c.data_cadastro,
+          c.genero,
+          c.estado_civil,
+          c.escolaridade,
+          c.numero_dependentes,
+          c.nacionalidade,
+          c.rg,
+          c.rg_orgao_emissor,
+          c.rg_uf,
+          c.rg_data_expedicao,
+          c.nome_pai,
+          c.nome_mae,
   
           (
             SELECT COUNT(*)
@@ -227,33 +373,181 @@ async function buscarCliente(req, res) {
 
 // ======================== EDITAR CLIENTE ========================
 async function editarCliente(req, res) {
-    try {
-        const { id } = req.params;
-        const dados = req.body;
+  try {
+    const { id } = req.params;
 
-        const campos = [];
-        const valores = [];
+    let {
+      nome,
+      cpf,
+      rg,
+      data_nascimento,
+      telefone,
+      renda_mensal,
+      situacao_profissional,
+      endereco,
+      cidade,
+      estado,
+      cep,
+      tipo_residencia,
+      tempo_residencia_meses,
+      observacoes,
+      genero,
+      estado_civil,
+      escolaridade,
+      numero_dependentes,
+      nacionalidade,
+      rg_orgao_emissor,
+      rg_uf,
+      rg_data_expedicao,
+      nome_pai,
+      nome_mae,
+    } = req.body;
 
-        for (let key in dados) {
-            campos.push(`${key} = ?`);
-            valores.push(dados[key]);
-        }
-
-        valores.push(id);
-
-        const sql = `UPDATE clientes SET ${campos.join(", ")} WHERE id = ?`;
-
-        await db.query(sql, valores);
-
-        res.json({ msg: "Cliente atualizado com sucesso!" });
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro ao editar cliente." });
+    const [existe] = await db.query("SELECT id FROM clientes WHERE id = ?", [id]);
+    if (!existe.length) {
+      return res.status(404).json({ error: "Cliente n�o encontrado." });
     }
+
+    if (!nome || !cpf) {
+      return res
+        .status(400)
+        .json({ error: "Nome e CPF s�o obrigat�rios." });
+    }
+
+    cpf = String(cpf).replace(/\D/g, "");
+
+    const rendaNormalizada = toNullableDecimal(renda_mensal);
+    if (
+      renda_mensal !== undefined &&
+      renda_mensal !== null &&
+      renda_mensal !== "" &&
+      rendaNormalizada === null
+    ) {
+      return res.status(400).json({ error: "Renda mensal inv�lida." });
+    }
+    renda_mensal = rendaNormalizada;
+
+    const tempoResidencia = toNullableInt(tempo_residencia_meses);
+    if (
+      tempo_residencia_meses !== undefined &&
+      tempo_residencia_meses !== null &&
+      tempo_residencia_meses !== "" &&
+      tempoResidencia === null
+    ) {
+      return res
+        .status(400)
+        .json({ error: "Tempo de resid�ncia inv�lido." });
+    }
+    tempo_residencia_meses = tempoResidencia;
+
+    const dependentesNormalizado = toNullableInt(numero_dependentes);
+    if (
+      numero_dependentes !== undefined &&
+      numero_dependentes !== null &&
+      numero_dependentes !== "" &&
+      dependentesNormalizado === null
+    ) {
+      return res
+        .status(400)
+        .json({ error: "N�mero de dependentes inv�lido." });
+    }
+    numero_dependentes = dependentesNormalizado;
+
+    tipo_residencia = await validarDominioOpcional(
+      "dom_tipo_residencia",
+      tipo_residencia,
+      "Tipo de resid�ncia inv�lido."
+    );
+    genero = await validarDominioOpcional(
+      "dom_genero",
+      genero,
+      "G�nero inv�lido."
+    );
+    estado_civil = await validarDominioOpcional(
+      "dom_estado_civil",
+      estado_civil,
+      "Estado civil inv�lido."
+    );
+    escolaridade = await validarDominioOpcional(
+      "dom_escolaridade",
+      escolaridade,
+      "Escolaridade inv�lida."
+    );
+    situacao_profissional = await validarDominioOpcional(
+      "dom_situacao_profissional",
+      situacao_profissional,
+      "Situa��o profissional inv�lida."
+    );
+
+    const sql = `
+      UPDATE clientes
+      SET
+        nome = ?,
+        cpf = ?,
+        rg = ?,
+        data_nascimento = ?,
+        telefone = ?,
+        renda_mensal = ?,
+        situacao_profissional = ?,
+        endereco = ?,
+        cidade = ?,
+        estado = ?,
+        cep = ?,
+        tipo_residencia = ?,
+        tempo_residencia_meses = ?,
+        observacoes = ?,
+        genero = ?,
+        estado_civil = ?,
+        escolaridade = ?,
+        numero_dependentes = ?,
+        nacionalidade = ?,
+        rg_orgao_emissor = ?,
+        rg_uf = ?,
+        rg_data_expedicao = ?,
+        nome_pai = ?,
+        nome_mae = ?
+      WHERE id = ?
+    `;
+
+    const params = [
+      nome,
+      cpf,
+      rg || null,
+      data_nascimento || null,
+      telefone || null,
+      renda_mensal,
+      situacao_profissional || null,
+      endereco || null,
+      cidade || null,
+      estado || null,
+      cep || null,
+      tipo_residencia || null,
+      tempo_residencia_meses,
+      observacoes || null,
+      genero || null,
+      estado_civil || null,
+      escolaridade || null,
+      numero_dependentes,
+      nacionalidade || null,
+      rg_orgao_emissor || null,
+      rg_uf || null,
+      rg_data_expedicao || null,
+      nome_pai || null,
+      nome_mae || null,
+      id,
+    ];
+
+    await db.query(sql, params);
+
+    return res.json({ msg: "Cliente atualizado com sucesso!" });
+  } catch (err) {
+    console.error(err);
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ error: err.message });
+    }
+    return res.status(500).json({ error: "Erro ao editar cliente." });
+  }
 }
-
-
 // ======================== EXCLUIR CLIENTE ========================
 async function excluirCliente(req, res) {
     try {
@@ -279,3 +573,5 @@ module.exports = {
     excluirCliente,
     detalhesCliente
 };
+
+

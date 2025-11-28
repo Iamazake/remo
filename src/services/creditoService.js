@@ -1,40 +1,41 @@
-// src/services/creditoService.js
+// src/services/creditoService.js (refatorado)
+function calcularRecomendacaoEmprestimo(rendaMensal, situacaoProfissional) {
+  if (!rendaMensal) {
+    return { valor: 0, parcelaMaxima: 0 };
+  }
 
-function calcularRecomendacaoEmprestimo(renda_mensal, situacao_profissional) {
-    if (!renda_mensal) {
-        return { valor: 0, parcelaMaxima: 0 };
-    }
+  const renda = Number(rendaMensal);
+  if (!Number.isFinite(renda) || renda <= 0) {
+    return { valor: 0, parcelaMaxima: 0 };
+  }
 
-    const renda = Number(renda_mensal);
-    const parcelaMaxima = renda * 0.30; // 30% da renda
+  // 30% da renda
+  const parcelaMaxima = renda * 0.3;
 
-    const multiplicadores = {
-        "CLT": 12,
-        "Servidor Público": 15,
-        "Aposentado": 10,
-        "Pensionista": 10,
-        "Autônomo": 8,
-        "MEI / Empresário": 8,
-        "Desempregado": 4,
-        "Outro": 6,
-        "": 6,
-        null: 6,
-        undefined: 6
-    };
+  const multiplicadores = {
+    CLT: 12,
+    "Servidor Público": 15,
+    Aposentado: 10,
+    Pensionista: 10,
+    Autônomo: 8,
+  };
 
-    const mult = multiplicadores[situacao_profissional] ?? 6;
+  const mult =
+    multiplicadores[situacaoProfissional] ??
+    multiplicadores[String(situacaoProfissional || "").trim()] ??
+    6; // default conservador
 
-    let valor = parcelaMaxima * mult;
+  let valor = parcelaMaxima * mult;
 
-    // arredonda para o 100 mais próximo
-    valor = Math.round(valor / 100) * 100;
+  // arredonda para o 100 mais próximo
+  valor = Math.round(valor / 100) * 100;
 
-    return {
-        valor,          // valor recomendado total do empréstimo
-        parcelaMaxima   // parcela máxima mensal
-    };
+  return {
+    valor, // valor recomendado total do empréstimo
+    parcelaMaxima, // parcela máxima mensal
+  };
 }
 
 module.exports = {
-    calcularRecomendacaoEmprestimo
+  calcularRecomendacaoEmprestimo,
 };

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Tabela de Juros - REMO</title>
+  <link rel="stylesheet" href="juros.css">
+</head>
+<body>
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <img src="/logosfundo.png" class="logo" alt="Logo REMO">
+
+      <ul>
+        <li><a href="/dashboard.html">🏠 Dashboard</a></li>
+        <li><a href="/clientes/index.html">👥 Clientes</a></li>
+        <li><a href="/emprestimos/index.html">💳 Empréstimos</a></li>
+        <li><a href="/pagamentos/index.html">💰 Pagamentos</a></li>
+        <li><a href="/relatorios/index.html">📊 Relatórios</a></li>
+        <li><a href="/juros/index.html" class="active">📈 Tabela de Juros</a></li>
+      </ul>
+    </aside>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="content">
+      <div class="container-card">
+        <div class="header">
+          <h1>Tabela de Juros</h1>
+          <button class="btn-primary" id="btnNovo">+ Nova Tabela</button>
+        </div>
+
+        <div class="filtros">
+          <input type="text" id="filtro" placeholder="Filtrar por nome ou ano...">
+          <button class="btn-secondary" id="btnBuscar">Buscar</button>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Ano ref.</th>
+                <th>Faixas</th>
+                <th>Status</th>
+                <th>Criado em</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="lista-tabelas">
+              <!-- preenchido via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL -->
+  <div id="modal" class="modal oculto">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="titulo-form">Nova Tabela de Juros</h2>
+        <button class="modal-close" id="btnFecharModal">&times;</button>
+      </div>
+
+      <form id="form-tabela-juros">
+        <input type="hidden" id="id">
+
+        <label for="nome">Nome da tabela:</label>
+        <input type="text" id="nome" required>
+
+        <label for="ano_referencia">Ano de referência:</label>
+        <input type="number" id="ano_referencia" min="1900" max="2100">
+
+        <label class="checkbox-inline">
+          <input type="checkbox" id="ativo" checked>
+          Tabela ativa
+        </label>
+
+        <label for="descricao">Observações:</label>
+        <textarea id="descricao" rows="3"></textarea>
+
+        <h3>Faixas de parcelas e taxa de juros</h3>
+
+        <table class="grid-faixas">
+          <thead>
+            <tr>
+              <th>Parcela de</th>
+              <th>Parcela até</th>
+              <th>Taxa (% ao mês)</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbody-faixas">
+            <!-- linhas adicionadas via JS -->
+          </tbody>
+        </table>
+
+        <button type="button" class="btn-secondary" id="btnAddFaixa">
+          + Adicionar faixa
+        </button>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="btnCancelar">Cancelar</button>
+          <button type="submit" class="btn-primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="juros.js"></script>
+</body>
+</html>

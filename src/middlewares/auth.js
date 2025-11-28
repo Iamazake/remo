@@ -1,21 +1,50 @@
+// src/middlewares/auth.js (refatorado)
 const jwt = require("jsonwebtoken");
 
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_ALG = process.env.JWT_ALG || "HS256";
+
+if (!JWT_SECRET) {
+  console.warn("[AUTH] JWT_SECRET não definido. Configure no .env");
+}
+
 module.exports = (req, res, next) => {
+  try {
     const authHeader = req.headers["authorization"];
 
-    if (!authHeader)
-        return res.status(401).json({ error: "Token não fornecido" });
+    if (!authHeader) {
+      return res.status(401).json({ error: "Token não fornecido" });
+    }
 
-    const token = authHeader.split(" ")[1];
+    const [scheme, token] = authHeader.split(" ");
 
-    if (!token)
-        return res.status(401).json({ error: "Token inválido" });
+    if (scheme !== "Bearer" || !token) {
+      return res.status(401).json({ error: "Formato de token inválido" });
+    }
 
-    jwt.verify(token, process.env.JWT_SECRET || "segredo", (err, user) => {
-        if (err)
-            return res.status(403).json({ error: "Token expirado ou inválido" });
+    if (!JWT_SECRET) {
+      return res
+        .status(500)
+        .json({ error: "Configuração de autenticação inválida" });
+    }
 
-        req.user = user; // Dados do usuário ficam acessíveis nas rotas
-        next();
-    });
+    const payload = jwt.verify(token, JWT_SECRET, { algorithms: [JWT_ALG] });
+
+    // Dados do usuário ficam acessíveis nas rotas
+    req.user = {
+      id: payload.id,
+      nome: payload.nome,
+      ...(payload.login && { login: payload.login }),
+    };
+
+    return next();
+  } catch (err) {
+    console.error("[AUTH] Erro na verificação do token:", err.message);
+
+    if (err.name === "TokenExpiredError") {
+      return res.status(401).json({ error: "Token expirado" });
+    }
+
+    return res.status(401).json({ error: "Token inválido" });
+  }
 };

@@ -60,11 +60,16 @@ function gerarCronogramaParcelas(valorParcela, qtdParcelas, dataInicioISO, diaVe
 async function listarEmprestimos(req, res) {
   try {
     const sql = `
-      SELECT e.*, c.nome AS nome_cliente
+      SELECT 
+        e.*,
+        c.nome AS nome_cliente,
+        tj.nome AS nome_tabela_juros
       FROM emprestimos e
       JOIN clientes c ON c.id = e.cliente_id
+      LEFT JOIN tabelas_juros tj ON tj.id = e.tabela_juros_id
       ORDER BY e.id DESC
     `;
+
     const [rows] = await db.query(sql);
     res.json(rows);
   } catch (err) {
@@ -104,28 +109,96 @@ async function criarEmprestimo(req, res) {
     let {
       cliente_id,
       valor_total,
-      taxa,          // % ao mês
+      taxa,              // % ao mês (opcional se tiver tabela_juros_id)
       parcelas,
       data_inicio,
       dia_vencimento,
       status,
-      observacoes
+      observacoes,
+      tabela_juros_id    // 🔹 novo
     } = req.body;
 
-    if (!cliente_id || !valor_total || taxa === undefined || !parcelas || !data_inicio || !dia_vencimento) {
+    if (!cliente_id || !valor_total || !parcelas || !data_inicio || !dia_vencimento) {
       return res.status(400).json({ error: 'Campos obrigatórios não preenchidos.' });
     }
 
     valor_total = parseFloat(valor_total);
-    taxa = parseFloat(taxa);
     parcelas = parseInt(parcelas, 10);
     dia_vencimento = parseInt(dia_vencimento, 10);
 
-    if (Number.isNaN(valor_total) || Number.isNaN(taxa) || Number.isNaN(parcelas) || parcelas <= 0) {
-      return res.status(400).json({ error: 'Valores inválidos para valor, taxa ou parcelas.' });
+    // tabela_juros_id pode vir string
+    tabela_juros_id = tabela_juros_id ? parseInt(tabela_juros_id, 10) : null;
+
+    if (Number.isNaN(valor_total) || Number.isNaN(parcelas) || parcelas <= 0) {
+      return res.status(400).json({ error: 'Valores inválidos para valor ou parcelas.' });
     }
 
-    const valor_parcela = calcularParcelaPrice(valor_total, taxa, parcelas);
+    // =========================================================
+    // 🔍 Definir taxaFinal
+    //    - se tiver tabela_juros_id → pega da faixa
+    //    - se NÃO tiver tabela_juros_id → usa taxa enviada
+    // =========================================================
+    let taxaFinal = taxa !== undefined && taxa !== null && taxa !== ''
+      ? parseFloat(taxa)
+      : NaN;
+
+    if (!tabela_juros_id && (Number.isNaN(taxaFinal))) {
+      return res.status(400).json({
+        error: 'Informe a taxa de juros ou selecione uma tabela de juros.'
+      });
+    }
+
+    if (tabela_juros_id) {
+      // valida tabela
+      const [tabRows] = await db.query(
+        'SELECT id FROM tabelas_juros WHERE id = ?',
+        [tabela_juros_id]
+      );
+      if (!tabRows.length) {
+        return res.status(400).json({ error: 'Tabela de juros não encontrada.' });
+      }
+
+      // busca faixas
+      const [faixas] = await db.query(
+        `
+        SELECT parcela_de, parcela_ate, taxa
+        FROM tabelas_juros_faixas
+        WHERE tabela_id = ?
+        ORDER BY parcela_de ASC
+        `,
+        [tabela_juros_id]
+      );
+
+      if (!faixas.length) {
+        return res.status(400).json({
+          error: 'A tabela de juros não possui faixas definidas.'
+        });
+      }
+
+      // procura faixa em que a quantidade de parcelas se encaixa
+      const faixa = faixas.find(f =>
+        parcelas >= Number(f.parcela_de) &&
+        parcelas <= Number(f.parcela_ate)
+      );
+
+      if (!faixa) {
+        const maxParcela = Math.max(...faixas.map(f => Number(f.parcela_ate)));
+        return res.status(400).json({
+          error: `Essa tabela de juros só está configurada até ${maxParcela} parcelas.`
+        });
+      }
+
+      taxaFinal = parseFloat(faixa.taxa);
+    }
+
+    if (Number.isNaN(taxaFinal)) {
+      return res.status(400).json({ error: 'Taxa de juros inválida.' });
+    }
+
+    // =========================================================
+    // 🧮 Cálculo da parcela (Price) + cronograma
+    // =========================================================
+    const valor_parcela = calcularParcelaPrice(valor_total, taxaFinal, parcelas);
 
     const { itensParcelas, data_fim } = gerarCronogramaParcelas(
       valor_parcela,
@@ -140,17 +213,18 @@ async function criarEmprestimo(req, res) {
     // Inserir empréstimo
     const sqlEmp = `
       INSERT INTO emprestimos
-        (cliente_id, valor_total, parcelas, valor_parcela, taxa,
+        (cliente_id, tabela_juros_id, valor_total, parcelas, valor_parcela, taxa,
          data_inicio, dia_vencimento, data_fim, status, observacoes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const [result] = await conn.query(sqlEmp, [
       cliente_id,
+      tabela_juros_id || null,
       valor_total,
       parcelas,
       valor_parcela,
-      taxa,
+      taxaFinal,
       data_inicio,
       dia_vencimento,
       data_fim,
@@ -197,6 +271,7 @@ async function criarEmprestimo(req, res) {
   }
 }
 
+
 // PUT /api/emprestimos/:id
 async function atualizarEmprestimo(req, res) {
   let conn;
@@ -211,19 +286,77 @@ async function atualizarEmprestimo(req, res) {
       dia_vencimento,
       status,
       observacoes,
-      recalcularParcelas // boolean opcional
+      recalcularParcelas,  // boolean opcional
+      tabela_juros_id      // 🔹 novo
     } = req.body;
 
     valor_total = parseFloat(valor_total);
-    taxa = parseFloat(taxa);
     parcelas = parseInt(parcelas, 10);
     dia_vencimento = parseInt(dia_vencimento, 10);
+    tabela_juros_id = tabela_juros_id ? parseInt(tabela_juros_id, 10) : null;
 
-    if (Number.isNaN(valor_total) || Number.isNaN(taxa) || Number.isNaN(parcelas) || parcelas <= 0) {
-      return res.status(400).json({ error: 'Valores inválidos para valor, taxa ou parcelas.' });
+    if (Number.isNaN(valor_total) || Number.isNaN(parcelas) || parcelas <= 0) {
+      return res.status(400).json({ error: 'Valores inválidos para valor ou parcelas.' });
     }
 
-    const valor_parcela = calcularParcelaPrice(valor_total, taxa, parcelas);
+    // =========================================================
+    // 🔍 Definir taxaFinal (igual na criação)
+    // =========================================================
+    let taxaFinal = taxa !== undefined && taxa !== null && taxa !== ''
+      ? parseFloat(taxa)
+      : NaN;
+
+    if (!tabela_juros_id && (Number.isNaN(taxaFinal))) {
+      return res.status(400).json({
+        error: 'Informe a taxa de juros ou selecione uma tabela de juros.'
+      });
+    }
+
+    if (tabela_juros_id) {
+      const [tabRows] = await db.query(
+        'SELECT id FROM tabelas_juros WHERE id = ?',
+        [tabela_juros_id]
+      );
+      if (!tabRows.length) {
+        return res.status(400).json({ error: 'Tabela de juros não encontrada.' });
+      }
+
+      const [faixas] = await db.query(
+        `
+        SELECT parcela_de, parcela_ate, taxa
+        FROM tabelas_juros_faixas
+        WHERE tabela_id = ?
+        ORDER BY parcela_de ASC
+        `,
+        [tabela_juros_id]
+      );
+
+      if (!faixas.length) {
+        return res.status(400).json({
+          error: 'A tabela de juros não possui faixas definidas.'
+        });
+      }
+
+      const faixa = faixas.find(f =>
+        parcelas >= Number(f.parcela_de) &&
+        parcelas <= Number(f.parcela_ate)
+      );
+
+      if (!faixa) {
+        const maxParcela = Math.max(...faixas.map(f => Number(f.parcela_ate)));
+        return res.status(400).json({
+          error: `Essa tabela de juros só está configurada até ${maxParcela} parcelas.`
+        });
+      }
+
+      taxaFinal = parseFloat(faixa.taxa);
+    }
+
+    if (Number.isNaN(taxaFinal)) {
+      return res.status(400).json({ error: 'Taxa de juros inválida.' });
+    }
+
+    const valor_parcela = calcularParcelaPrice(valor_total, taxaFinal, parcelas);
     const { itensParcelas, data_fim } = gerarCronogramaParcelas(
       valor_parcela,
       parcelas,
@@ -236,17 +369,18 @@ async function atualizarEmprestimo(req, res) {
 
     const sql = `
       UPDATE emprestimos
-      SET cliente_id = ?, valor_total = ?, parcelas = ?, valor_parcela = ?, taxa = ?,
+      SET cliente_id = ?, tabela_juros_id = ?, valor_total = ?, parcelas = ?, valor_parcela = ?, taxa = ?,
           data_inicio = ?, dia_vencimento = ?, data_fim = ?, status = ?, observacoes = ?
       WHERE id = ?
     `;
 
     const [result] = await conn.query(sql, [
       cliente_id,
+      tabela_juros_id || null,
       valor_total,
       parcelas,
       valor_parcela,
-      taxa,
+      taxaFinal,
       data_inicio,
       dia_vencimento,
       data_fim,
@@ -262,7 +396,6 @@ async function atualizarEmprestimo(req, res) {
 
     // Se quiser recalcular parcelas (ex.: mudou taxa, valor ou quantidade)
     if (recalcularParcelas) {
-      // Apaga só as parcelas pendentes
       await conn.query(
         `DELETE FROM pagamentos
          WHERE emprestimo_id = ? AND status = 'pendente'`,
@@ -302,6 +435,7 @@ async function atualizarEmprestimo(req, res) {
     if (conn) conn.release();
   }
 }
+
 
 // DELETE /api/emprestimos/:id
 async function excluirEmprestimo(req, res) {

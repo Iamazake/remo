@@ -1,5 +1,6 @@
 const API_EMPRESTIMOS = '/api/emprestimos';
 const API_CLIENTES = '/api/clientes';
+const API_TABELAS_JUROS = '/api/tabelas-juros';
 
 const token = localStorage.getItem('token');
 
@@ -36,6 +37,10 @@ const campoDataInicio = document.getElementById('data_inicio');
 const campoDiaVenc = document.getElementById('dia_vencimento');
 const campoStatus = document.getElementById('status');
 const campoObs = document.getElementById('observacoes');
+const campoTabelaJuros = document.getElementById('tabela_juros_id');
+
+let tabelasJurosCache = [];      // para lista simples
+const tabelasJurosDetalhes = {}; // para guardar faixas por ID
 
 let emprestimos = [];
 let clientes = [];
@@ -75,13 +80,17 @@ function badgeStatus(status) {
 function abrirModal(novo = true, dados = null) {
   modal.classList.remove('oculto');
 
+    carregarTabelasJuros();
+
   if (novo) {
     tituloForm.textContent = 'Novo Empréstimo';
     editandoId = null;
     form.reset();
     campoStatus.value = 'ativo';
-    campoCliente.disabled = false;      // pode escolher cliente
+    campoCliente.disabled = false;
     campoCliente.value = '';
+    campoTabelaJuros.value = '';
+    campoTaxa.value = '';
   } else {
     tituloForm.textContent = 'Editar Empréstimo';
     editandoId = dados.id;
@@ -108,6 +117,10 @@ function preencherFormulario(d) {
   campoDiaVenc.value = d.dia_vencimento;
   campoStatus.value = d.status || 'ativo';
   campoObs.value = d.observacoes || '';
+
+    // 👇 NOVO
+  campoTabelaJuros.value = d.tabela_juros_id || '';
+  atualizarTaxaAutomatica(); // mantém o comportamento (trava taxa se tiver tabela)
 }
 // -------- Carregar clientes --------
 
@@ -156,22 +169,32 @@ function renderTabela() {
 
   listaEl.innerHTML = '';
 
+  // cabeçalho tem 12 colunas → colspan 12
   if (filtrados.length === 0) {
-    listaEl.innerHTML = '<tr><td colspan="11">Nenhum empréstimo encontrado.</td></tr>';
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 12;
+    td.textContent = 'Nenhum empréstimo encontrado.';
+    tr.appendChild(td);
+    listaEl.appendChild(tr);
     return;
   }
 
   filtrados.forEach(e => {
-    const tr = document.createElement('tr');
+    const tr = document.createElement('tr');              // 👈 AGORA CRIA A LINHA
+    const nomeTabela = e.nome_tabela_juros || '-';
+    const taxaFmt = Number(e.taxa).toFixed(2) + '%';
+    const statusHtml = badgeStatus(e.status);             // 👈 passa o status
 
     tr.innerHTML = `
       <td>${e.id}</td>
-      <td>${e.nome_cliente || '-'}</td>
-      <td>${formataValor(e.valor_total)}</td>
+      <td>${e.nome_cliente}</td>
+      <td>${formataValor(e.valor_total)}</td>             <!-- usa suas funções -->
       <td>${e.parcelas}</td>
       <td>${formataValor(e.valor_parcela)}</td>
-      <td>${Number(e.taxa).toFixed(2)}</td>
-      <td>${badgeStatus(e.status)}</td>
+      <td>${taxaFmt}</td>
+      <td>${nomeTabela}</td>
+      <td>${statusHtml}</td>
       <td>${formataData(e.data_inicio)}</td>
       <td>${e.dia_vencimento}</td>
       <td>${formataData(e.data_fim)}</td>
@@ -185,22 +208,31 @@ function renderTabela() {
   });
 }
 
+
 // -------- Salvar (Criar / Atualizar) --------
 
 async function salvarEmprestimo(event) {
   event.preventDefault();
 
-  const payload = {
-    cliente_id: campoCliente.value,
-    valor_total: campoValorTotal.value,
-    taxa: campoTaxa.value,
-    parcelas: campoParcelas.value,
-    data_inicio: campoDataInicio.value,
-    dia_vencimento: campoDiaVenc.value,
-    status: campoStatus.value,
-    observacoes: campoObs.value,
-    recalcularParcelas: true // no PUT, vai regenerar parcelas pendentes
-  };
+  // se escolheu tabela de juros, precisa ter taxa preenchida
+  if (campoTabelaJuros.value && !campoTaxa.value) {
+    alert('Selecione uma quantidade de parcelas que exista na tabela de juros escolhida.');
+    return;
+  }
+
+const payload = {
+  cliente_id: campoCliente.value,
+  valor_total: campoValorTotal.value,
+  taxa: campoTaxa.value,
+  parcelas: campoParcelas.value,
+  data_inicio: campoDataInicio.value,
+  dia_vencimento: campoDiaVenc.value,
+  status: campoStatus.value,
+  observacoes: campoObs.value,
+  tabela_juros_id: campoTabelaJuros.value || null,   // 👈 NOVO
+  recalcularParcelas: true
+};
+
 
   const metodo = editandoId ? 'PUT' : 'POST';
   const url = editandoId ? `${API_EMPRESTIMOS}/${editandoId}` : API_EMPRESTIMOS;
@@ -317,6 +349,103 @@ async function carregarRecomendacaoCliente() {
   }
 }
 
+// -------- Tabela de juros <select> --------
+async function carregarTabelasJuros() {
+  try {
+    const resp = await authFetch(API_TABELAS_JUROS);
+    if (!resp.ok) throw new Error('Erro ao buscar tabelas de juros');
+
+    const data = await resp.json();
+    tabelasJurosCache = data;
+
+    campoTabelaJuros.innerHTML = '<option value="">-- Selecionar --</option>';
+
+    for (const t of tabelasJurosCache) {
+
+      if (t.ativo !== 1) continue;  // 🔹 só lista tabelas ativas
+
+      const opt = document.createElement('option');
+      const labelAno = t.ano_referencia ? ` (${t.ano_referencia})` : '';
+      opt.value = t.id;
+      opt.textContent = `${t.nome}${labelAno}`;
+      campoTabelaJuros.appendChild(opt);
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Erro ao carregar tabelas de juros.');
+  }
+}
+// -------- Tabela de juros detalhes(faixa) --------
+async function obterDetalhesTabelaJuros(id) {
+  if (!id) return null;
+
+  if (tabelasJurosDetalhes[id]) {
+    return tabelasJurosDetalhes[id];
+  }
+
+  try {
+    const resp = await authFetch(`${API_TABELAS_JUROS}/${id}`);
+    if (!resp.ok) throw new Error('Erro ao buscar detalhes da tabela de juros');
+
+    const dados = await resp.json();
+    tabelasJurosDetalhes[id] = dados;
+    return dados;
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+}
+// -------- Tabela de juros atualiza(auto) --------
+async function atualizarTaxaAutomatica() {
+  const tabelaId = campoTabelaJuros.value;
+  const qtdParcelas = Number(campoParcelas.value);
+
+  // se não escolheu tabela, libera o campo de taxa
+  if (!tabelaId) {
+    campoTaxa.readOnly = false;
+    campoTaxa.classList.remove("readonly");
+    // taxa continua o que o usuário digitar
+    return;
+  }
+
+  // com tabela escolhida -> taxa sempre vem da tabela
+  campoTaxa.readOnly = true;
+  campoTaxa.classList.add("readonly");
+
+  if (!qtdParcelas) {
+    campoTaxa.value = "";
+    return;
+  }
+
+  const tabela = await obterDetalhesTabelaJuros(tabelaId);
+  if (!tabela || !Array.isArray(tabela.faixas)) {
+    campoTaxa.value = "";
+    alert("Tabela de juros sem faixas cadastradas.");
+    return;
+  }
+
+  const faixa = tabela.faixas.find(f =>
+    qtdParcelas >= Number(f.parcela_de) &&
+    qtdParcelas <= Number(f.parcela_ate)
+  );
+
+  if (!faixa) {
+    const maxFaixa = tabela.faixas.reduce(
+      (max, f) => Math.max(max, Number(f.parcela_ate)),
+      0
+    );
+
+    campoTaxa.value = "";
+    alert(
+      `Essa tabela de juros só está configurada até ${maxFaixa} parcelas. ` +
+      `Ajuste a quantidade de parcelas ou escolha outra tabela.`
+    );
+    return;
+  }
+
+  campoTaxa.value = Number(faixa.taxa).toFixed(2);
+}
+
 
 
 // -------- Eventos --------
@@ -331,6 +460,9 @@ filtroInput.addEventListener('keyup', e => {
   if (e.key === 'Enter') renderTabela();
 });
 campoCliente.addEventListener('change', carregarRecomendacaoCliente);
+campoTabelaJuros.addEventListener('change', atualizarTaxaAutomatica);
+campoParcelas.addEventListener('change', atualizarTaxaAutomatica);
+campoParcelas.addEventListener('blur', atualizarTaxaAutomatica);
 
 // -------- Init --------
 

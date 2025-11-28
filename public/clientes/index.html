@@ -1,130 +1,321 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <title>Clientes - REMO</title>
-    <link rel="stylesheet" href="cliente.css">
+  <meta charset="UTF-8">
+  <title>Clientes - REMO</title>
+  <link rel="stylesheet" href="cliente.css">
 </head>
 <body>
 
 <div class="layout">
-    <!-- SIDEBAR PADRÃO REMO -->
-    <aside class="sidebar">
-        <img src="/logosfundo.png" class="logo" alt="Remo Logo">
+  <aside class="sidebar">
+    <img src="/logosfundo.png" class="logo" alt="Remo Logo">
 
-        <ul>
-            <li><a href="/dashboard.html">🏠 Dashboard</a></li>
-            <li><a href="/clientes/index.html" class="active">👥 Clientes</a></li>
-            <li><a href="/emprestimos/index.html">💰 Empréstimos</a></li>
-            <li><a href="/pagamentos/index.html">📄 Pagamentos</a></li>
-            <li><a href="/relatorios/index.html">📊 Relatórios</a></li>
-        </ul>
-    </aside>
+    <ul>
+      <li><a href="/dashboard.html">🏠 Dashboard</a></li>
+      <li><a href="/clientes/index.html" class="active">👥 Clientes</a></li>
+      <li><a href="/emprestimos/index.html">💳 Empréstimos</a></li>
+      <li><a href="/pagamentos/index.html">💰 Pagamentos</a></li>
+      <li><a href="/relatorios/index.html">📊 Relatórios</a></li>
+      <li><a href="/juros/index.html">📈 Tabela de Juros</a></li>
+    </ul>
+  </aside>
 
-    <!-- CONTEÚDO PRINCIPAL -->
-    <main class="content">
-        <div class="container-card">
-            <div class="header">
-                <h1>Clientes</h1>
-                <button id="novoClienteBtn" class="btn-primary" onclick="abrirFormulario()">+ Novo Cliente</button>
-            </div>
+  <main class="content">
+    <div class="container-card">
+      <div class="header">
+        <h1>Clientes</h1>
+        <button id="novoClienteBtn" class="btn-primary" onclick="abrirFormulario()">+ Novo Cliente</button>
+      </div>
 
-            <div class="table-wrapper">
-                <div class="toolbar-clientes">
-                    <input 
-                      id="filtroCliente" 
-                      type="search" 
-                      placeholder="Buscar por nome, CPF ou telefone..."
-                    >
-                  </div>
-                  
-                <table>
-                    <thead>
-                        <tr>
-                          <th>ID</th>
-                          <th>Nome</th>
-                          <th>CPF</th>
-                          <th>Telefone</th>
-                          <th>Renda mensal</th>
-                          <th>Situação prof.</th>
-                          <th>Status</th>
-                          <th>Desde</th>
-                          <th>Empréstimos</th>
-                          <th class="col-acoes">Ações</th>
-                        </tr>
-                      </thead>                      
-                    <tbody>                
-                        <!-- preenchido pelo clientes.js -->
-                    </tbody>
-                </table>
-            </div>
+      <div class="table-wrapper">
+        <div class="toolbar-clientes">
+          <input id="filtroCliente" type="search" placeholder="Buscar por nome, CPF ou telefone...">
         </div>
-    </main>
+
+        <table>
+        <thead>
+            <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>CPF</th>
+            <th>Telefone</th>
+            <th>Renda mensal</th>
+            <th>Situação prof.</th>
+            <th>Status</th>
+            <th>Desde</th>
+            <th>Empréstimos</th>
+            <th class="col-acoes">Ações</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
 </div>
 
 <!-- MODAL -->
-<div id="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2 class="modal-title" id="titulo-modal">Novo Cliente</h2>
-            <button type="button" class="modal-close" onclick="fecharFormulario()">&times;</button>
-        </div>
-        
-            <form id="form-cliente">
-                <input type="hidden" id="id">
-            
-                <label for="nome">Nome:</label>
-                <input type="text" id="nome" required>
-            
-                <label for="cpf">CPF:</label>
-                <input
-                    type="text"
-                    id="cpf"
-                    maxlength="11"
-                    oninput="this.value = this.value.replace(/\D/g, '')"
-                >
-                <span id="erro-cpf" class="erro-campo"></span>
-            
-                <label for="rg">RG:</label>
-                <input type="text" id="rg">
-            
-                <label for="telefone">Telefone:</label>
-                <input type="text" id="telefone">
-            
-                <label for="situacao_profissional">Situação profissional:</label>
-                <select id="situacao_profissional">
-                    <option value="">Selecione...</option>
-                    <option value="CLT">CLT</option>
-                    <option value="Autônomo">Autônomo</option>
-                    <option value="Aposentado">Aposentado</option>
-                    <option value="Pensionista">Pensionista</option>
-                    <option value="Servidor Público">Servidor Público</option>
-                    <option value="Desempregado">Desempregado</option>
-                    <option value="MEI / Empresário">MEI / Empresário</option>
-                    <option value="Outro">Outro</option>
-                </select>
-            
-                <label for="renda_mensal">Renda mensal (R$):</label>
-                <input type="number" id="renda_mensal" min="0" step="0.01" inputmode="decimal">
-            
-                <label for="observacoes">Observações:</label>
-                <textarea id="observacoes"></textarea>
-            
-                <div class="modal-buttons">
-                    <button type="button" class="btn-secondary" onclick="fecharFormulario()">Cancelar</button>
-                    <button type="submit" class="btn-primary">Salvar</button>
-                </div>
-            </form>        
-            </div>
-        </form>
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="titulo-form">Novo Cliente</h2>
+      <button type="button" class="btn-fechar" onclick="fecharFormulario()">✖</button>
     </div>
+
+    <div class="form-steps-nav">
+      <button type="button" class="step-btn active" data-step="1">Dados pessoais</button>
+      <button type="button" class="step-btn" data-step="2">Endereço</button>
+      <button type="button" class="step-btn" data-step="3">Perfil civil</button>
+      <button type="button" class="step-btn" data-step="4">Telefones</button>
+      <button type="button" class="step-btn" data-step="5">Profissão & Renda</button>
+      <button type="button" class="step-btn" data-step="6">Contas</button>
+    </div>
+
+    <form id="form-cliente" novalidate>
+      <input type="hidden" id="id">
+
+      <!-- STEP 1 -->
+      <div class="form-step active" data-step="1">
+        <h3 class="step-title">Dados principais e contato</h3>
+        <div class="form-grid two-columns">
+          <div class="form-field">
+            <label for="nome">Nome completo</label>
+            <input type="text" id="nome" required>
+          </div>
+          <div class="form-field">
+            <label for="cpf">CPF</label>
+            <input type="text" id="cpf" maxlength="11" oninput="this.value = this.value.replace(/\\D/g, '')">
+            <span id="erro-cpf" class="erro-campo"></span>
+          </div>
+          <div class="form-field">
+            <label for="rg">RG</label>
+            <input type="text" id="rg">
+          </div>
+          <div class="form-field">
+            <label for="data_nascimento">Data de nascimento</label>
+            <input type="date" id="data_nascimento">
+          </div>
+          <div class="form-field">
+            <label for="telefone">Telefone principal</label>
+            <input type="text" id="telefone" placeholder="(11) 90000-0000">
+          </div>
+          <div class="form-field">
+            <label for="situacao_profissional">Situação profissional</label>
+            <select id="situacao_profissional"></select>
+          </div>
+          <div class="form-field">
+            <label for="renda_mensal">Renda mensal informada (R$)</label>
+            <input type="number" id="renda_mensal" min="0" step="0.01">
+          </div>
+          <div class="form-field full">
+            <label for="observacoes">Observações</label>
+            <textarea id="observacoes" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div class="form-step" data-step="2">
+        <h3 class="step-title">Endereço e residência</h3>
+        <div class="form-grid two-columns">
+          <div class="form-field full">
+            <label for="endereco">Logradouro</label>
+            <input type="text" id="endereco">
+          </div>
+          <div class="form-field">
+            <label for="numero">Número</label>
+            <input type="text" id="numero">
+          </div>
+          <div class="form-field">
+            <label for="complemento">Complemento</label>
+            <input type="text" id="complemento">
+          </div>
+          <div class="form-field">
+            <label for="bairro">Bairro</label>
+            <input type="text" id="bairro">
+          </div>
+          <div class="form-field">
+            <label for="cidade">Cidade</label>
+            <input type="text" id="cidade">
+          </div>
+          <div class="form-field">
+            <label for="estado">UF</label>
+            <input type="text" id="estado" maxlength="2">
+          </div>
+          <div class="form-field">
+            <label for="cep">CEP</label>
+            <input type="text" id="cep" placeholder="00000-000">
+          </div>
+          <div class="form-field">
+            <label for="tipo_residencia">Tipo de residência</label>
+            <select id="tipo_residencia"></select>
+          </div>
+          <div class="form-field">
+            <label for="tempo_residencia">Tempo de residência (meses)</label>
+            <input type="number" id="tempo_residencia" min="0" step="1">
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div class="form-step" data-step="3">
+        <h3 class="step-title">Perfil civil e família</h3>
+        <div class="form-grid two-columns">
+          <div class="form-field">
+            <label for="genero">Gênero</label>
+            <select id="genero"></select>
+          </div>
+          <div class="form-field">
+            <label for="estado_civil">Estado civil</label>
+            <select id="estado_civil"></select>
+          </div>
+          <div class="form-field">
+            <label for="escolaridade">Escolaridade</label>
+            <select id="escolaridade"></select>
+          </div>
+          <div class="form-field">
+            <label for="numero_dependentes">Número de dependentes</label>
+            <input type="number" id="numero_dependentes" min="0" step="1">
+          </div>
+          <div class="form-field">
+            <label for="nacionalidade">Nacionalidade</label>
+            <input type="text" id="nacionalidade">
+          </div>
+          <div class="form-field">
+            <label for="rg_orgao_emissor">Órgão emissor</label>
+            <input type="text" id="rg_orgao_emissor">
+          </div>
+          <div class="form-field">
+            <label for="rg_uf">UF do RG</label>
+            <input type="text" id="rg_uf" maxlength="2">
+          </div>
+          <div class="form-field">
+            <label for="rg_data_expedicao">Data de expedição</label>
+            <input type="date" id="rg_data_expedicao">
+          </div>
+          <div class="form-field">
+            <label for="nome_pai">Nome do pai</label>
+            <input type="text" id="nome_pai">
+          </div>
+          <div class="form-field">
+            <label for="nome_mae">Nome da mãe</label>
+            <input type="text" id="nome_mae">
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 4 -->
+      <div class="form-step" data-step="4">
+        <div class="section-card">
+          <div class="section-header">
+            <div>
+              <h3>Telefones e contatos de recado</h3>
+              <p>Cadastre celulares, residenciais, trabalho e contatos de recado.</p>
+            </div>
+            <button type="button" class="btn-inline" id="btnAddTelefone">+ Adicionar telefone</button>
+          </div>
+          <div id="telefonesLista" class="dynamic-list"></div>
+        </div>
+      </div>
+
+      <!-- STEP 5 -->
+      <div class="form-step" data-step="5">
+        <div class="section-card">
+          <div class="section-header">
+            <h3>Vínculo profissional</h3>
+            <button type="button" class="btn-inline" id="btnLimparEmprego">Remover vínculo</button>
+          </div>
+          <div class="form-grid two-columns">
+            <div class="form-field">
+              <label for="emp_empresa">Empresa</label>
+              <input type="text" id="emp_empresa">
+            </div>
+            <div class="form-field">
+              <label for="emp_cargo">Cargo / função</label>
+              <input type="text" id="emp_cargo">
+            </div>
+            <div class="form-field">
+              <label for="emp_natureza">Natureza da ocupação</label>
+              <select id="emp_natureza"></select>
+            </div>
+            <div class="form-field">
+              <label for="emp_tempo">Tempo na empresa (meses)</label>
+              <input type="number" id="emp_tempo" min="0" step="1">
+            </div>
+            <div class="form-field">
+              <label for="emp_tipo_comprovante">Tipo de comprovante</label>
+              <select id="emp_tipo_comprovante"></select>
+            </div>
+            <div class="form-field">
+              <label for="emp_telefone">Telefone comercial</label>
+              <input type="text" id="emp_telefone">
+            </div>
+            <div class="form-field">
+              <label for="emp_ramal">Ramal</label>
+              <input type="text" id="emp_ramal">
+            </div>
+            <div class="form-field">
+              <label for="emp_endereco">Endereço da empresa</label>
+              <input type="text" id="emp_endereco">
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header">
+            <h3>Renda e margem consignável</h3>
+          </div>
+          <div class="form-grid two-columns">
+            <div class="form-field">
+              <label for="renda_salario_bruto">Salário bruto (R$)</label>
+              <input type="number" id="renda_salario_bruto" min="0" step="0.01">
+            </div>
+            <div class="form-field">
+              <label for="renda_descontos">Outros empréstimos (R$)</label>
+              <input type="number" id="renda_descontos" min="0" step="0.01">
+            </div>
+          </div>
+          <div class="renda-cards">
+            <div class="renda-card">
+              <span>Salário líquido estimado</span>
+              <strong id="renda_salario_liquido">R$ 0,00</strong>
+            </div>
+            <div class="renda-card">
+              <span>Margem disponível (30%)</span>
+              <strong id="renda_margem">R$ 0,00</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 6 -->
+      <div class="form-step" data-step="6">
+        <div class="section-card">
+          <div class="section-header">
+            <div>
+              <h3>Contas bancárias</h3>
+              <p>Defina uma conta principal para crédito.</p>
+            </div>
+            <button type="button" class="btn-inline" id="btnAddConta">+ Nova conta</button>
+          </div>
+          <div id="contasLista" class="dynamic-list"></div>
+        </div>
+      </div>
+
+      <div class="form-footer">
+        <button type="button" class="btn-secondary" id="btnVoltarStep">Voltar</button>
+        <button type="button" class="btn-primary" id="btnProximoStep">Próximo</button>
+        <button type="submit" class="btn-primary" id="btnSalvarCliente">Salvar</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script src="clientes.js"></script>
-
 <script>
-    const token = localStorage.getItem("token");
-    if (!token) window.location.href = "/login.html";
+  const token = localStorage.getItem("token");
+  if (!token) window.location.href = "/login.html";
 </script>
 
 </body>
