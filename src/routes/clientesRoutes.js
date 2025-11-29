@@ -30,4 +30,7 @@ router.put("/:clienteId/renda", auth, rendaController.salvarRenda);
 router.get("/:clienteId/contas", auth, contasController.listarPorCliente);
 router.post("/:clienteId/contas", auth, contasController.criarConta);
 
+//Detalhes Cliente financeiro
+router.get('/:id/resumo-financeiro', auth, clientesController.resumoFinanceiroCliente); // NOVO: corrige rota
+
 module.exports = router;

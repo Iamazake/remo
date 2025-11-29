@@ -27,6 +27,16 @@ const tituloForm = document.getElementById('titulo-form');
 const filtroInput = document.getElementById('filtro');
 const btnBuscar = document.getElementById('btnBuscar');
 
+// NOVO: modal simplificado de solicitação
+const modalNovaSolic = document.getElementById('modal-nova-solicitacao');
+const formNovaSolic = document.getElementById('form-nova-solicitacao');
+const btnFecharNovaSolic = document.getElementById('btnFecharNovaSolic');
+const btnCancelarNovaSolic = document.getElementById('btnCancelarNovaSolic');
+const campoNovaSolCliente = document.getElementById('nova_sol_cliente_id');
+const campoNovaSolValor = document.getElementById('nova_sol_valor');
+const campoNovaSolParcelas = document.getElementById('nova_sol_parcelas');
+const campoNovaSolTabela = document.getElementById('nova_sol_tabela_id');
+
 // Campos do formulário
 const campoId = document.getElementById('id');
 const campoCliente = document.getElementById('cliente_id');
@@ -131,12 +141,21 @@ async function carregarClientes() {
     clientes = await resp.json();
 
     campoCliente.innerHTML = '<option value="">Selecione...</option>';
+    if (campoNovaSolCliente) {
+      campoNovaSolCliente.innerHTML = '<option value="">Selecione...</option>'; // NOVO
+    }
 
     clientes.forEach(c => {
       campoCliente.insertAdjacentHTML(
         'beforeend',
         `<option value="${c.id}">${c.nome}</option>`
       );
+      if (campoNovaSolCliente) {
+        campoNovaSolCliente.insertAdjacentHTML(
+          'beforeend',
+          `<option value="${c.id}">${c.nome}</option>` // NOVO
+        );
+      }
     });
   } catch (err) {
     console.error('Erro ao carregar clientes:', err);
@@ -350,6 +369,19 @@ async function carregarRecomendacaoCliente() {
 }
 
 // -------- Tabela de juros <select> --------
+function preencherSelectTabelas(selectEl, tabelas) {
+  if (!selectEl) return;
+  selectEl.innerHTML = '<option value="">-- Selecionar --</option>';
+  for (const t of tabelas) {
+    if (t.ativo !== 1) continue;
+    const opt = document.createElement('option');
+    const labelAno = t.ano_referencia ? ` (${t.ano_referencia})` : '';
+    opt.value = t.id;
+    opt.textContent = `${t.nome}${labelAno}`;
+    selectEl.appendChild(opt);
+  }
+}
+
 async function carregarTabelasJuros() {
   try {
     const resp = await authFetch(API_TABELAS_JUROS);
@@ -358,18 +390,8 @@ async function carregarTabelasJuros() {
     const data = await resp.json();
     tabelasJurosCache = data;
 
-    campoTabelaJuros.innerHTML = '<option value="">-- Selecionar --</option>';
-
-    for (const t of tabelasJurosCache) {
-
-      if (t.ativo !== 1) continue;  // 🔹 só lista tabelas ativas
-
-      const opt = document.createElement('option');
-      const labelAno = t.ano_referencia ? ` (${t.ano_referencia})` : '';
-      opt.value = t.id;
-      opt.textContent = `${t.nome}${labelAno}`;
-      campoTabelaJuros.appendChild(opt);
-    }
+    preencherSelectTabelas(campoTabelaJuros, tabelasJurosCache);
+    preencherSelectTabelas(campoNovaSolTabela, tabelasJurosCache); // NOVO
   } catch (err) {
     console.error(err);
     alert('Erro ao carregar tabelas de juros.');
@@ -448,9 +470,64 @@ async function atualizarTaxaAutomatica() {
 
 
 
+// -------- NOVO: Modal de solicitação rápida --------
+
+function abrirModalNovaSolicitacao() {
+  formNovaSolic?.reset();
+  modalNovaSolic?.classList.remove('oculto');
+}
+
+function fecharModalNovaSolicitacao() {
+  modalNovaSolic?.classList.add('oculto');
+}
+
+async function salvarNovaSolicitacao(event) {
+  event.preventDefault();
+  const clienteId = Number(campoNovaSolCliente?.value);
+  const valor = Number(campoNovaSolValor?.value);
+  const parcelas = Number(campoNovaSolParcelas?.value);
+  const tabelaId = campoNovaSolTabela?.value ? Number(campoNovaSolTabela.value) : null;
+
+  if (!clienteId || !valor || !parcelas) {
+    alert('Informe cliente, valor e parcelas da solicitação.');
+    return;
+  }
+
+  try {
+    const resp = await authFetch('/api/solicitacoes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cliente_id: clienteId,
+        valor_solicitado: valor,
+        parcelas_solicitadas: parcelas,
+        tabela_juros_id: tabelaId,
+        status_solicitacao: 'rascunho'
+      })
+    });
+
+    const data = await resp.json().catch(() => ({}));
+
+    if (!resp.ok) {
+      alert(data.error || 'Erro ao criar solicitação.');
+      return;
+    }
+
+    localStorage.setItem('solicitacoesNeedsRefresh', '1'); // NOVO
+    fecharModalNovaSolicitacao();
+    alert('Solicitação criada como rascunho! Confira na tela de Solicitações.');
+  } catch (err) {
+    console.error('Erro ao criar solicitação:', err);
+    alert('Erro ao criar solicitação.');
+  }
+}
+
 // -------- Eventos --------
 
-btnNovo.addEventListener('click', () => abrirModal(true));
+btnNovo.addEventListener('click', (event) => {
+  event.preventDefault();
+  abrirModalNovaSolicitacao();
+});
 btnFecharModal.addEventListener('click', fecharModal);
 btnCancelar.addEventListener('click', fecharModal);
 form.addEventListener('submit', salvarEmprestimo);
@@ -464,9 +541,159 @@ campoTabelaJuros.addEventListener('change', atualizarTaxaAutomatica);
 campoParcelas.addEventListener('change', atualizarTaxaAutomatica);
 campoParcelas.addEventListener('blur', atualizarTaxaAutomatica);
 
+btnFecharNovaSolic?.addEventListener('click', fecharModalNovaSolicitacao); // NOVO
+btnCancelarNovaSolic?.addEventListener('click', fecharModalNovaSolicitacao); // NOVO
+formNovaSolic?.addEventListener('submit', salvarNovaSolicitacao); // NOVO
+
 // -------- Init --------
 
 (async function init() {
   await carregarClientes();
   await carregarEmprestimos();
+  await carregarTabelasJuros(); // 👈 garante tabelas carregadas na tela
 })();
+
+
+// =======================================================
+// NOVA SOLICITAÇÃO A PARTIR DA TELA DE EMPRÉSTIMOS
+// (usa os mesmos clientes e tabelas já carregados)
+// =======================================================
+
+const modalSolic = document.getElementById('modal-solicitacao');
+const formSolic = document.getElementById('form-solicitacao');
+
+const campoSolicCliente   = document.getElementById('sol_cliente_id');
+const campoSolicValor     = document.getElementById('sol_valor_solicitado');
+const campoSolicParcelas  = document.getElementById('sol_parcelas_solicitadas');
+const campoSolicTabela    = document.getElementById('sol_tabela_juros_id');
+const campoSolicTaxa      = document.getElementById('sol_taxa_prevista');
+
+const btnNovaSolicitacao  = document.getElementById('btnNovaSolicitacao');
+const btnSolicCancelar    = document.getElementById('btnSolicCancelar');
+
+// Abre modal preenchendo combos com os dados já carregados na tela
+function abrirModalNovaSolicitacao() {
+  if (!modalSolic) return;
+
+  // clientes já estão em `clientes` (carregados no init())
+  campoSolicCliente.innerHTML = '<option value="">Selecione...</option>';
+  clientes.forEach(c => {
+    campoSolicCliente.insertAdjacentHTML(
+      'beforeend',
+      `<option value="${c.id}">${c.nome}</option>`
+    );
+  });
+
+  // tabelas já estão em `tabelasJurosCache`
+  campoSolicTabela.innerHTML = '<option value="">-- Selecionar --</option>';
+  (tabelasJurosCache || [])
+    .filter(t => t.ativo === 1)
+    .forEach(t => {
+      const labelAno = t.ano_referencia ? ` (${t.ano_referencia})` : '';
+      campoSolicTabela.insertAdjacentHTML(
+        'beforeend',
+        `<option value="${t.id}">${t.nome}${labelAno}</option>`
+      );
+    });
+
+  // limpa campos
+  formSolic.reset();
+  campoSolicTaxa.value = '';
+
+  modalSolic.classList.remove('oculto');
+}
+
+function fecharModalNovaSolicitacao() {
+  if (!modalSolic) return;
+  modalSolic.classList.add('oculto');
+}
+
+// Calcula a taxa prevista com base na tabela de juros + qtd parcelas
+async function atualizarTaxaPrevistaSolicitacao() {
+  const tabelaId = campoSolicTabela.value;
+  const qtdParcelas = Number(campoSolicParcelas.value);
+
+  if (!tabelaId || !qtdParcelas) {
+    campoSolicTaxa.value = '';
+    return;
+  }
+
+  const tabela = await obterDetalhesTabelaJuros(tabelaId);
+  if (!tabela || !Array.isArray(tabela.faixas)) {
+    campoSolicTaxa.value = '';
+    return;
+  }
+
+  const faixa = tabela.faixas.find(f =>
+    qtdParcelas >= Number(f.parcela_de) &&
+    qtdParcelas <= Number(f.parcela_ate)
+  );
+
+  campoSolicTaxa.value = faixa ? Number(faixa.taxa).toFixed(2) : '';
+}
+
+// Envia POST /api/solicitacoes com status rascunho
+async function salvarSolicitacao(event) {
+  event.preventDefault();
+
+  const cliente_id = campoSolicCliente.value;
+  const valorBruto = campoSolicValor.value.replace(/\./g, '').replace(',', '.');
+  const valor_solicitado = Number(valorBruto || 0);
+  const parcelas_solicitadas = Number(campoSolicParcelas.value || 0);
+  const tabela_juros_id = campoSolicTabela.value || null;
+  const taxa_prevista = campoSolicTaxa.value || null;
+
+  if (!cliente_id || !valor_solicitado || !parcelas_solicitadas) {
+    alert('Preencha cliente, valor e quantidade de parcelas.');
+    return;
+  }
+
+  try {
+    const resp = await authFetch('/api/solicitacoes', {
+      method: 'POST',
+      body: JSON.stringify({
+        cliente_id,
+        valor_solicitado,
+        parcelas_solicitadas,
+        tabela_juros_id,
+        taxa_prevista,
+        status_solicitacao: 'rascunho'
+      })
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      console.error('Erro ao criar solicitação:', data);
+      alert(data.error || 'Erro ao criar solicitação.');
+      return;
+    }
+
+    // só pra saber, na tela de Solicitações, que veio daqui
+    localStorage.setItem('solicitacao_criada_de_emprestimos', '1');
+
+    fecharModalNovaSolicitacao();
+
+    // se quiser, pode redirecionar direto:
+    // window.location.href = '/solicitacoes/index.html';
+
+  } catch (err) {
+    console.error('Erro ao criar solicitação:', err);
+    alert('Erro ao criar solicitação.');
+  }
+}
+
+// Eventos
+if (btnNovaSolicitacao) {
+  btnNovaSolicitacao.addEventListener('click', abrirModalNovaSolicitacao);
+}
+if (btnSolicCancelar) {
+  btnSolicCancelar.addEventListener('click', fecharModalNovaSolicitacao);
+}
+if (formSolic) {
+  formSolic.addEventListener('submit', salvarSolicitacao);
+}
+if (campoSolicTabela && campoSolicParcelas) {
+  campoSolicTabela.addEventListener('change', atualizarTaxaPrevistaSolicitacao);
+  campoSolicParcelas.addEventListener('blur', atualizarTaxaPrevistaSolicitacao);
+}

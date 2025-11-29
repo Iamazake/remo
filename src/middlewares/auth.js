@@ -34,10 +34,17 @@ module.exports = (req, res, next) => {
     req.user = {
       id: payload.id,
       nome: payload.nome,
-      ...(payload.login && { login: payload.login }),
+      login: payload.login,
+      // 👇 PERFIL é o que nosso fluxo de solicitações usa
+      // se o token não tiver perfil ainda, cai no 'admin' (modo DEV)
+      perfil: payload.perfil || 'admin',
     };
 
+    // compatibilidade, caso em algum lugar você use req.userId
+    req.userId = payload.id;
+
     return next();
+
   } catch (err) {
     console.error("[AUTH] Erro na verificação do token:", err.message);
 

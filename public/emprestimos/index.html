@@ -18,6 +18,7 @@
                 <li><a href="/pagamentos/index.html">📄 Pagamentos</a></li>
                 <li><a href="/relatorios/index.html">📊 Relatórios</a></li>
                 <li><a href="/juros/index.html">📈 Tabela de Juros</a></li>
+                <li><a href="/solicitacoes/index.html">📬 Solicitações</a></li>
             </ul>
         </aside>
 
@@ -26,7 +27,8 @@
             <div class="container-card">
                 <div class="header">
                     <h1>Empréstimos</h1>
-                    <button class="btn-primary" id="btnNovo">+ Novo Empréstimo</button>
+                    <!-- // NOVO: botão passa a abrir modal de solicitação -->
+                    <button id="btnNovo" class="btn-primario">+ Nova Solicitação</button>
                 </div>
 
                 <div class="filtros">
@@ -132,6 +134,39 @@
                 </div>
             </form>
 
+        </div>
+    </div>
+
+    <!-- // NOVO: modal rápido de solicitação -->
+    <div id="modal-nova-solicitacao" class="modal oculto">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Nova Solicitação</h2>
+                <button class="modal-close" id="btnFecharNovaSolic">&times;</button>
+            </div>
+
+            <form id="form-nova-solicitacao" class="modal-body">
+                <label for="nova_sol_cliente_id">Cliente:</label>
+                <select id="nova_sol_cliente_id" required>
+                    <option value="">Selecione...</option>
+                </select>
+
+                <label for="nova_sol_valor">Valor solicitado (R$):</label>
+                <input type="number" id="nova_sol_valor" step="0.01" min="0" required>
+
+                <label for="nova_sol_parcelas">Quantidade de parcelas:</label>
+                <input type="number" id="nova_sol_parcelas" min="1" required>
+
+                <label for="nova_sol_tabela_id">Tabela de juros:</label>
+                <select id="nova_sol_tabela_id">
+                    <option value="">-- Selecionar --</option>
+                </select>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="btnCancelarNovaSolic">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar</button>
+                </div>
+            </form>
         </div>
     </div>
 

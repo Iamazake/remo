@@ -1,0 +1,131 @@
+@import url("../emprestimos/emprestimos.css");
+
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+  }
+  
+  .modal.oculto {
+    display: none;
+  }
+  
+  .modal-content {
+    background: #151a3b;
+    border-radius: 18px;
+    padding: 24px;
+    width: 380px;
+    max-width: 90vw;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    color: #fff;
+  }
+  
+  .modal-content h3 {
+    margin-top: 0;
+    margin-bottom: 12px;
+  }
+  
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  
+  .btn-acao.btn-confirmar {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: #fff;
+    border: none;
+  }
+  
+  .btn-acao.btn-cancelar {
+    background: #444c7d;
+    color: #fff;
+    border: none;
+  }
+  .link-cliente {
+    background: none;
+    border: none;
+    color: #4da3ff;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    font: inherit;
+  }
+
+  #cliente-detalhes p {
+    margin: 4px 0;
+  }
+
+/* // NOVO: form do modal de solicitação */
+.modal-solicitacao {
+  width: 420px;
+  max-width: 92vw;
+}
+
+.modal-solicitacao form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modal-solicitacao label {
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.modal-solicitacao input,
+.modal-solicitacao select {
+  border-radius: 10px;
+  border: none;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+}
+
+.modal-solicitacao input:focus,
+.modal-solicitacao select:focus {
+  outline: 2px solid rgba(77,163,255,0.6);
+}
+
+/* // NOVO: entrada opcional do modal de confirmação */
+#modal-confirmacao .modal-input {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#modal-confirmacao .modal-input input {
+  border-radius: 10px;
+  border: none;
+  padding: 10px;
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+}
+
+#modal-confirmacao .modal-input input.input-erro {
+  outline: 2px solid rgba(248,113,113,0.9); /* // NOVO: destaca campo obrigatório */
+}
+
+#modal-confirmacao .modal-input.oculto {
+  display: none;
+}
+/* estilo base dos botões de ação já vem do emprestimos.css */
+.btn-acao.btn-confirmar,
+.btn-acao.btn-primario {
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  color: #fff;
+  border: none;
+}
+
+.btn-acao.btn-cancelar {
+  background: #444c7d;
+  color: #fff;
+  border: none;
+}
+  

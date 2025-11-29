@@ -563,6 +563,61 @@ async function excluirCliente(req, res) {
     }
 }
 
+// GET /api/clientes/:id/resumo-financeiro
+async function resumoFinanceiroCliente(req, res) {
+  try {
+    const { id } = req.params;
+
+    // 1) empréstimos ativos/atrasados
+    const [empRows] = await db.query(
+      `
+      SELECT 
+        COUNT(*) AS qtd_emprestimos_ativos
+      FROM emprestimos
+      WHERE cliente_id = ?
+        AND status IN ('ativo', 'atrasado')
+      `,
+      [id]
+    );
+
+    const qtdEmpAtivos = empRows[0]?.qtd_emprestimos_ativos || 0;
+
+    // 2) valores e atrasos (pagamentos)
+    const [pagRows] = await db.query(
+      `
+      SELECT
+        SUM(CASE WHEN p.status <> 'pago' THEN p.valor ELSE 0 END)        AS total_em_aberto,
+        SUM(CASE WHEN p.status = 'atrasado' THEN p.valor ELSE 0 END)     AS total_atrasado,
+        SUM(CASE WHEN p.status = 'atrasado' THEN 1 ELSE 0 END)           AS parcelas_atrasadas,
+        AVG(
+          CASE 
+            WHEN p.status = 'atrasado' AND p.data_pagamento IS NOT NULL
+              THEN DATEDIFF(p.data_pagamento, p.data_prevista)
+            ELSE NULL
+          END
+        ) AS media_dias_atraso
+      FROM pagamentos p
+      JOIN emprestimos e ON e.id = p.emprestimo_id
+      WHERE e.cliente_id = ?
+      `,
+      [id]
+    );
+
+    const resumo = pagRows[0] || {};
+
+    return res.json({
+      qtd_emprestimos_ativos: qtdEmpAtivos,
+      total_em_aberto: Number(resumo.total_em_aberto || 0),
+      total_atrasado: Number(resumo.total_atrasado || 0),
+      parcelas_atrasadas: resumo.parcelas_atrasadas || 0,
+      media_dias_atraso: resumo.media_dias_atraso ? Number(resumo.media_dias_atraso) : 0
+    });
+  } catch (err) {
+    console.error('Erro no resumo financeiro do cliente:', err);
+    res.status(500).json({ error: 'Erro ao montar resumo financeiro do cliente.' });
+  }
+}
+
 
 // ======================== EXPORTAR TODAS ========================
 module.exports = {
@@ -571,7 +626,7 @@ module.exports = {
     buscarCliente,
     editarCliente,
     excluirCliente,
-    detalhesCliente
+    detalhesCliente,
+    resumoFinanceiroCliente // NOVO
 };
-
 

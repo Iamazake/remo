@@ -22,7 +22,7 @@ const form = document.getElementById('form-pagamento');
 
 // campos modal
 const pgCliente = document.getElementById('pg_cliente');
-const pgParcela = document.getElementById('pg_parcela');
+const pgParcela = document.getElementById('pgAA_parcela');
 const pgDataPrevista = document.getElementById('pg_data_prevista');
 const pgDataPagamento = document.getElementById('pg_data_pagamento');
 const pgValorOriginal = document.getElementById('pg_valor_original');
