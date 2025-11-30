@@ -481,6 +481,12 @@ exports.reprovarSolicitacao = async (req, res) => {
 // body: { forma_liberacao, conta_destino }
 // Só pode liberar se estiver APROVADO
 // ======================================================
+// ======================================================
+// POST /api/solicitacoes/:id/liberar
+// FINANCEIRO / ADMIN
+// body: { forma_liberacao }
+// Só pode liberar se estiver APROVADO
+// ======================================================
 exports.liberarSolicitacao = async (req, res) => {
   let conn;
   try {
@@ -495,37 +501,51 @@ exports.liberarSolicitacao = async (req, res) => {
       return res.status(400).json({ error: 'Informe a forma de liberação.' });
     }
 
-    // 1) Busca solicitação + empréstimo + cliente
-    const [rows] = await db.query(
-      `
-      SELECT se.*, e.cliente_id
-      FROM solicitacoes_emprestimo se
-      JOIN emprestimos e ON e.id = se.emprestimo_id
-      WHERE se.id = ?
-      `,
+    // 1) Busca apenas a solicitação
+    const [solicRows] = await db.query(
+      'SELECT * FROM solicitacoes_emprestimo WHERE id = ?',
       [id]
     );
-
-    if (!rows.length) {
+    if (!solicRows.length) {
       return res.status(404).json({ error: 'Solicitação não encontrada.' });
     }
 
-    const solic = rows[0];
+    const solic = solicRows[0];
 
     if (solic.status_solicitacao !== 'aprovado') {
-      return res.status(400).json({ error: 'Somente solicitações aprovadas podem ser liberadas.' });
+      return res.status(400).json({
+        error: 'Somente solicitações aprovadas podem ser liberadas.'
+      });
     }
 
-    // 2) Busca conta principal do cliente
+    if (!solic.emprestimo_id) {
+      return res.status(400).json({
+        error: 'Solicitação ainda não possui empréstimo vinculado. Aprove a solicitação antes de liberar.'
+      });
+    }
+
+    // 2) Garante que o empréstimo existe e pega o cliente
+    const [empRows] = await db.query(
+      'SELECT id, cliente_id FROM emprestimos WHERE id = ?',
+      [solic.emprestimo_id]
+    );
+    if (!empRows.length) {
+      return res.status(400).json({ error: 'Empréstimo vinculado não encontrado.' });
+    }
+
+    const emprestimo = empRows[0];
+
+    // 3) Busca conta principal do cliente (campos corretos)
     const [contas] = await db.query(
       `
-      SELECT banco, agencia, conta, tipo, pix_chave
-      FROM contas
-      WHERE cliente_id = ? AND principal = 1
-      LIMIT 1
+      SELECT banco, agencia, conta, tipo_conta
+        FROM contas_bancarias_cliente
+       WHERE cliente_id = ? AND principal = 1
+       LIMIT 1
       `,
-      [solic.cliente_id]
+      [emprestimo.cliente_id]
     );
+
 
     if (!contas.length) {
       return res.status(400).json({
@@ -535,14 +555,14 @@ exports.liberarSolicitacao = async (req, res) => {
 
     const conta = contas[0];
 
-    const contaDestinoTexto = conta.pix_chave
-      ? `PIX: ${conta.pix_chave}`
-      : `${conta.banco} / ag: ${conta.agencia} / conta: ${conta.conta} (${conta.tipo})`;
+    const contaDestinoTexto =
+      `${conta.banco} / ag: ${conta.agencia} / conta: ${conta.conta} (${conta.tipo_conta})`;
 
+
+    // 4) Transação: marca solicitação como liberada + ativa empréstimo
     conn = await db.getConnection();
     await conn.beginTransaction();
 
-    // 3) Atualiza solicitação como liberada
     await conn.query(
       `
       UPDATE solicitacoes_emprestimo
@@ -556,10 +576,9 @@ exports.liberarSolicitacao = async (req, res) => {
       [usuarioId, forma_liberacao, contaDestinoTexto, id]
     );
 
-    // opcional: atualizar empréstimo também
     await conn.query(
       `UPDATE emprestimos SET status = 'ativo' WHERE id = ?`,
-      [solic.emprestimo_id]
+      [emprestimo.id]
     );
 
     await conn.commit();
@@ -572,13 +591,16 @@ exports.liberarSolicitacao = async (req, res) => {
   } catch (err) {
     console.error('[SOLIC] Erro ao liberar:', err);
     if (conn) {
-      try { await conn.rollback(); } catch {}
+      try { await conn.rollback(); } catch (e) {
+        console.error('Erro ao fazer rollback na liberação:', e);
+      }
     }
     return res.status(500).json({ error: 'Erro ao liberar solicitação.' });
   } finally {
-    if (conn) conn.release && conn.release();
+    if (conn && conn.release) conn.release();
   }
 };
+
 
 
 // ======================================================

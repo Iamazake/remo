@@ -3,14 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <title>Solicitações de Empréstimo - REMO</title>
-  <link rel="stylesheet" href="/solicitacoes/solicitacoes.css"><!-- reutiliza o mesmo visual -->
+  <link rel="stylesheet" href="solicitacoes.css">
 </head>
 <body>
   <div class="layout">
-
     <!-- SIDEBAR -->
     <aside class="sidebar">
-      <img src="/logosfundo.png" class="logo">
+      <img src="/logosfundo.png" class="logo" alt="Logo REMO">
 
       <ul>
         <li><a href="/dashboard.html">🏠 Dashboard</a></li>
@@ -25,17 +24,32 @@
 
     <!-- CONTEÚDO PRINCIPAL -->
     <main class="content">
-      <div class="container">
-        <div class="header-row">
-          <h1>Solicitações de Empréstimo</h1>
-          <!-- // NOVO: botão abre o modal de criação -->
-          <button id="btnNovaSolicitacao" class="btn-primary">+ Nova Solicitação</button>
+      <div class="container-card">
+        <div class="header">
+          <div>
+            <h1>Solicitações de Empréstimo</h1>
+            <p class="subtitle">
+              Acompanhe o fluxo de aprovação, da criação até a liberação do valor.
+            </p>
+          </div>
+
+          <button id="btnNovaSolicitacao" class="btn-primario">
+            + Nova Solicitação
+          </button>
         </div>
 
-        <input id="filtro" type="text" placeholder="Filtrar por cliente ou status..." class="filtro-input">
+        <div class="toolbar">
+          <div class="toolbar-right">
+            <input
+              type="text"
+              id="filtro"
+              placeholder="Buscar por cliente, status ou ID..."
+            />
+          </div>
+        </div>
 
-        <div class="card">
-          <table class="tabela-emprestimos">
+        <div class="table-wrapper">
+          <table class="tabela-solicitacoes">
             <thead>
               <tr>
                 <th>ID</th>
@@ -44,86 +58,104 @@
                 <th>Parcelas</th>
                 <th>Status</th>
                 <th>Criado em</th>
-                <th>Ações</th>
+                <th style="text-align:center;">Ações</th>
               </tr>
             </thead>
             <tbody id="lista-solicitacoes">
-              <!-- preenchido pelo JS -->
+              <!-- preenchido via JS -->
             </tbody>
           </table>
         </div>
       </div>
     </main>
-
   </div>
 
-  <!-- // NOVO: modal de criação de solicitação -->
+  <!-- MODAL: NOVA SOLICITAÇÃO -->
   <div id="modal-solicitacao" class="modal oculto">
-    <div class="modal-content modal-solicitacao">
+    <div class="modal-content">
       <div class="modal-header">
-        <h3>Nova Solicitação</h3>
-        <button type="button" id="btnFecharSolicitacao" class="modal-close">&times;</button>
+        <h2>Nova Solicitação</h2>
+        <button class="modal-close" id="btnFecharSolic">&times;</button>
       </div>
-      <form id="form-solicitacao">
-        <label for="sol_cliente_id">Cliente</label>
+
+      <form id="form-solicitacao" class="modal-body">
+        <label for="sol_cliente_id">Cliente:</label>
         <select id="sol_cliente_id" required>
           <option value="">Selecione...</option>
         </select>
 
-        <label for="sol_valor_solicitado">Valor solicitado (R$)</label>
-        <input id="sol_valor_solicitado" type="number" step="0.01" min="0" required>
+        <label for="sol_valor">Valor solicitado (R$):</label>
+        <input type="number" id="sol_valor" step="0.01" min="0" required>
 
-        <label for="sol_parcelas">Quantidade de parcelas</label>
-        <input id="sol_parcelas" type="number" min="1" required>
+        <label for="sol_parcelas">Quantidade de parcelas:</label>
+        <input type="number" id="sol_parcelas" min="1" required>
 
-        <label for="sol_tabela_juros_id">Tabela de juros</label>
-        <select id="sol_tabela_juros_id">
+        <label for="sol_tabela_id">Tabela de juros:</label>
+        <select id="sol_tabela_id">
           <option value="">-- Selecionar --</option>
         </select>
 
         <label for="sol_taxa_prevista">Taxa prevista (% ao mês)</label>
-        <input id="sol_taxa_prevista" type="number" step="0.01" min="0">
+        <input
+          type="number"
+          id="sol_taxa_prevista"
+          step="0.01"
+          min="0"
+          disabled
+          placeholder="Definida automaticamente na aprovação"
+        />
 
         <div class="modal-actions">
-          <button type="button" id="btnCancelarSolicitacao" class="btn-acao btn-cancelar">Cancelar</button>
-          <button type="submit" class="btn-acao btn-confirmar">Salvar</button>
+          <button type="button" class="btn-secondary" id="btnCancelarSolic">
+            Cancelar
+          </button>
+          <button type="submit" class="btn-primary">
+            Salvar
+          </button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- // NOVO: modal de confirmação customizado -->
+  <!-- MODAL REUTILIZÁVEL CONFIRMAÇÃO + MENSAGEM -->
   <div id="modal-confirmacao" class="modal oculto">
-    <div class="modal-content">
+    <div class="modal-content modal-content-sm">
       <h3 id="modal-titulo">Confirmação</h3>
-      <p id="modal-mensagem">...</p>
+      <p id="modal-mensagem"></p>
 
-      <div id="modal-input-wrapper" class="modal-input oculto">
-        <label id="modal-input-label" for="modal-input-field"></label>
-        <input id="modal-input-field" type="text" placeholder="">
-        <small id="modal-input-hint"></small>
+      <div id="modal-extra-field" class="modal-extra oculto">
+        <label id="modal-extra-label" for="modal-extra-input"></label>
+        <input id="modal-extra-input" type="text">
+        <small id="modal-extra-hint" class="modal-hint"></small>
       </div>
 
       <div class="modal-actions">
-        <button id="modal-btn-cancelar" class="btn-acao btn-cancelar">Cancelar</button>
-        <button id="modal-btn-confirmar" class="btn-acao btn-confirmar">Confirmar</button>
+        <button id="modal-btn-cancelar" class="btn-secondary">Cancelar</button>
+        <button id="modal-btn-confirmar" class="btn-primary">Confirmar</button>
       </div>
     </div>
   </div>
 
-  <!-- // NOVO: modal de detalhes do cliente -->
+  <!-- MODAL DETALHES DO CLIENTE + SOLICITAÇÃO -->
   <div id="modal-cliente" class="modal oculto">
-    <div class="modal-content">
-      <h3>Resumo do Cliente</h3>
-      <div id="cliente-detalhes">
-        <!-- preenchido via JS -->
+    <div class="modal-content modal-content-lg">
+      <div class="modal-header">
+        <h2>Detalhes da Solicitação</h2>
+        <button class="modal-close" id="btnFecharCliente">&times;</button>
       </div>
-      <div class="modal-actions">
-        <button id="btnFecharCliente" class="btn-acao btn-cancelar">Fechar</button>
+
+      <div class="cliente-solicitacao-grid">
+        <div id="cliente-detalhes" class="cliente-detalhes">
+          <!-- preenchido via JS -->
+        </div>
+
+        <div id="solicitacao-detalhes" class="solicitacao-detalhes">
+          <!-- preenchido via JS -->
+        </div>
       </div>
     </div>
   </div>
 
-  <script src="/solicitacoes/solicitacoes.js"></script>
+  <script src="solicitacoes.js"></script>
 </body>
 </html>

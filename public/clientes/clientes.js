@@ -31,6 +31,81 @@ let rendaState = null;
 let stepAtual = 1;
 const TOTAL_STEPS = 6;
 
+// Campos do passo 1 (Dados pessoais)
+const campoNome = document.getElementById("nome");
+const campoCPF = document.getElementById("cpf");
+const campoDataNasc = document.getElementById("data_nascimento");
+const campoTelefone = document.getElementById("telefone");
+const campoSituacaoProf = document.getElementById("situacao_profissional");
+const campoRendaMensal = document.getElementById("renda_mensal");
+const erroCPFSpan = document.getElementById("erro-cpf");
+
+function limparErrosPasso1() {
+  [
+    campoNome,
+    campoCPF,
+    campoDataNasc,
+    campoTelefone,
+    campoSituacaoProf,
+    campoRendaMensal,
+  ].forEach((campo) => campo && campo.classList.remove("campo-erro"));
+
+  if (erroCPFSpan) erroCPFSpan.textContent = "";
+}
+
+function validarPasso1() {
+  limparErrosPasso1();
+  let ok = true;
+
+  // Nome
+  if (!campoNome.value.trim()) {
+    campoNome.classList.add("campo-erro");
+    ok = false;
+  }
+
+  // CPF
+  const cpfValor = campoCPF.value.trim();
+  if (!cpfValor || !validarCPF(cpfValor)) {
+    campoCPF.classList.add("campo-erro");
+    if (erroCPFSpan) {
+      erroCPFSpan.textContent = cpfValor ? "CPF inválido." : "Informe o CPF.";
+    }
+    ok = false;
+  }
+
+  // Data de nascimento
+  if (!campoDataNasc.value) {
+    campoDataNasc.classList.add("campo-erro");
+    ok = false;
+  }
+
+  // Telefone
+  if (!campoTelefone.value.trim()) {
+    campoTelefone.classList.add("campo-erro");
+    ok = false;
+  }
+
+  // Situação profissional
+  if (!campoSituacaoProf.value) {
+    campoSituacaoProf.classList.add("campo-erro");
+    ok = false;
+  }
+
+  // Renda mensal > 0
+  const rendaVal = campoRendaMensal.value;
+  if (!rendaVal || Number(rendaVal) <= 0) {
+    campoRendaMensal.classList.add("campo-erro");
+    ok = false;
+  }
+
+  if (!ok) {
+    alert("Preencha corretamente os campos obrigatórios do passo Dados pessoais.");
+  }
+
+  return ok;
+}
+
+
 function authFetch(url, options = {}) {
   const token = localStorage.getItem("token");
   if (!token) {
@@ -291,6 +366,12 @@ function atualizarStepsUI() {
 
 function irParaStep(novoStep) {
   if (novoStep < 1 || novoStep > TOTAL_STEPS) return;
+
+  // se estiver saindo do passo 1 para qualquer passo > 1, valida
+  if (stepAtual === 1 && novoStep > 1) {
+    if (!validarPasso1()) return;
+  }
+
   stepAtual = novoStep;
   atualizarStepsUI();
 }
@@ -846,6 +927,25 @@ document.addEventListener("DOMContentLoaded", () => {
       renderContas();
     }
   });
+
+    // valida CPF quando o usuário sai do campo
+  campoCPF?.addEventListener("blur", () => {
+    const cpfValor = campoCPF.value.trim();
+    if (!cpfValor) {
+      campoCPF.classList.remove("campo-erro");
+      if (erroCPFSpan) erroCPFSpan.textContent = "";
+      return;
+    }
+
+    if (!validarCPF(cpfValor)) {
+      campoCPF.classList.add("campo-erro");
+      if (erroCPFSpan) erroCPFSpan.textContent = "CPF inválido.";
+    } else {
+      campoCPF.classList.remove("campo-erro");
+      if (erroCPFSpan) erroCPFSpan.textContent = "";
+    }
+  });
+
 
   atualizarStepsUI();
   resetEstadosComplementares();

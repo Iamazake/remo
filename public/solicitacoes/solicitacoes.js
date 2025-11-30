@@ -27,12 +27,13 @@ const btnNovaSolicitacao = document.getElementById('btnNovaSolicitacao');
 const modalSolicitacao = document.getElementById('modal-solicitacao');
 const formSolicitacao = document.getElementById('form-solicitacao');
 
-const campoSolCliente = document.getElementById('sol_cliente_id');
-const campoSolTabela = document.getElementById('sol_tabela_juros_id');
-const campoSolValor = document.getElementById('sol_valor_solicitado');
+const campoSolCliente  = document.getElementById('sol_cliente_id');
+const campoSolTabela   = document.getElementById('sol_tabela_id');
+const campoSolValor    = document.getElementById('sol_valor');
 const campoSolParcelas = document.getElementById('sol_parcelas');
-const campoSolTaxa = document.getElementById('sol_taxa_prevista');
-const btnCancelarSolic = document.getElementById('btnCancelarSolicitacao'); // NOVO
+const campoSolTaxa     = document.getElementById('sol_taxa_prevista');
+const btnCancelarSolic = document.getElementById('btnCancelarSolic');
+
 
 // NOVO: elementos do modal de confirmação customizado
 const modalConfirmacao = document.getElementById('modal-confirmacao');
@@ -40,14 +41,62 @@ const modalTitulo = document.getElementById('modal-titulo');
 const modalMensagem = document.getElementById('modal-mensagem');
 const modalBtnCancelar = document.getElementById('modal-btn-cancelar');
 const modalBtnConfirmar = document.getElementById('modal-btn-confirmar');
-const modalInputWrapper = document.getElementById('modal-input-wrapper');
-const modalInputLabel = document.getElementById('modal-input-label');
-const modalInputField = document.getElementById('modal-input-field');
-const modalInputHint = document.getElementById('modal-input-hint');
+const modalInputWrapper = document.getElementById('modal-extra-field');
+const modalInputLabel   = document.getElementById('modal-extra-label');
+const modalInputField   = document.getElementById('modal-extra-input');
+const modalInputHint    = document.getElementById('modal-extra-hint');
+
 
 let clientes = [];
 let tabelasJuros = [];
 
+
+// ===== helpers de juros (simulação da solicitação) =====
+function calcularParcelaPrice(valor, taxaPercent, qtdParcelas) {
+  const n = Number(qtdParcelas);
+  const i = Number(taxaPercent) / 100;
+
+  if (!n || n <= 0) return 0;
+
+  if (!i) {
+    return Math.round((valor / n) * 100) / 100;
+  }
+
+  const parcela = (i * valor) / (1 - Math.pow(1 + i, -n));
+  return Math.round(parcela * 100) / 100;
+}
+
+function encontrarTabelaPorId(id) {
+  return tabelasJuros.find(t => Number(t.id) === Number(id)) || null;
+}
+
+function obterTaxaDaSolicitacao(solic) {
+  const parcelas = Number(solic.parcelas_solicitadas || 0);
+  const tabela = solic.tabela_juros_id ? encontrarTabelaPorId(solic.tabela_juros_id) : null;
+
+  if (tabela && Array.isArray(tabela.faixas)) {
+    const faixa = tabela.faixas.find(f =>
+      parcelas >= Number(f.parcela_de) &&
+      parcelas <= Number(f.parcela_ate)
+    );
+    if (faixa) {
+      return { taxa: Number(faixa.taxa), tabela };
+    }
+  }
+
+  if (solic.taxa_prevista != null) {
+    return { taxa: Number(solic.taxa_prevista), tabela };
+  }
+
+  return { taxa: null, tabela };
+}
+
+function formatCurrencyBR(v) {
+  return Number(v || 0).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  });
+}
 
 // NOVO: modal de confirmação com suporte a input
 function abrirModalConfirmacao(titulo, mensagem, opcoes = {}) {
@@ -83,13 +132,14 @@ function abrirModalConfirmacao(titulo, mensagem, opcoes = {}) {
     modalInputField.placeholder = inputPlaceholder || '';
     modalInputField.type = inputType;
     modalInputField.value = defaultValue;
-    modalInputHint.textContent = inputHint || '';
+    if (modalInputHint) modalInputHint.textContent = inputHint || '';
     setTimeout(() => modalInputField.focus(), 50);
   } else {
     modalInputWrapper.classList.add('oculto');
     modalInputField.value = '';
-    modalInputHint.textContent = '';
+    if (modalInputHint) modalInputHint.textContent = '';
   }
+
 
   modalConfirmacao.classList.remove('oculto');
 
@@ -106,7 +156,8 @@ function fecharModalConfirmacao(confirmado = false, valor = null) {
   modalInputWrapper.classList.add('oculto');
   modalInputField.value = '';
   modalInputField.classList.remove('input-erro');
-  modalInputHint.textContent = '';
+  if (modalInputHint) modalInputHint.textContent = '';
+
 
   if (modalResolve) {
     modalResolve({ confirmado, valor });
@@ -230,9 +281,8 @@ async function salvarSolicitacao(e) {
     String(campoSolValor.value).replace('.', '').replace(',', '.')
   );
   const parcelas_solicitadas = Number(campoSolParcelas.value);
-  const taxa_prevista = campoSolTaxa.value
-    ? Number(String(campoSolTaxa.value).replace(',', '.'))
-    : null;
+  // taxa passa a ser sempre calculada na aprovação
+  const taxa_prevista = null;
   const tabela_juros_id = campoSolTabela.value
     ? Number(campoSolTabela.value)
     : null;
@@ -297,16 +347,25 @@ function renderTabela() {
     tr.innerHTML = `
       <td>${s.id}</td>
       <td>
-      <button class="link-cliente" data-cliente-id="${s.cliente_id}">
-        ${s.nome_cliente}
-      </button>
+        <button
+          class="link-cliente"
+          data-cliente-id="${s.cliente_id}"
+          data-solicitacao-id="${s.id}"
+        >
+          ${s.nome_cliente}
+        </button>
       </td>
       <td>R$ ${Number(s.valor_solicitado).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
       <td>${s.parcelas_solicitadas}</td>
-      <td>${formatarStatus(s.status_solicitacao)}</td>
+      <td>
+        <span class="status-pill status-${s.status_solicitacao}">
+          ${formatarStatus(s.status_solicitacao)}
+        </span>
+      </td>
       <td>${formatarData(s.criado_em)}</td>
       <td class="acoes"></td>
     `;
+
 
     const tdAcoes = tr.querySelector('.acoes');
     montarBotoesAcoes(tdAcoes, s);
@@ -328,6 +387,20 @@ function formatarStatus(status) {
   };
   return map[status] || status;
 }
+function classeStatus(status) {
+  if (!status) return 'status-rascunho';
+  const map = {
+    rascunho: 'status-rascunho',
+    enviado: 'status-enviado',
+    em_analise: 'status-em_analise',
+    aprovado: 'status-aprovado',
+    reprovado: 'status-reprovado',
+    cancelado: 'status-reprovado',
+    liberado: 'status-liberado',
+  };
+  return map[status] || 'status-rascunho';
+}
+
 
 function formatarData(iso) {
   if (!iso) return '-';
@@ -464,7 +537,7 @@ async function tratarRespostaAcao(resp, mensagemOk) {
 }
 
 // NOVO: garante abertura do modal com dados formatados
-async function abrirDetalhesCliente(clienteId) {
+async function abrirDetalhesSolicitacao(clienteId, solicitacao) {
   try {
     // dados básicos do cliente
     const respCli = await authFetch(`/api/clientes/${clienteId}`);
@@ -475,21 +548,15 @@ async function abrirDetalhesCliente(clienteId) {
     const respRes = await authFetch(`/api/clientes/${clienteId}/resumo-financeiro`);
     const resumo = respRes.ok ? await respRes.json() : null;
 
-    const box = document.getElementById('cliente-detalhes');
-
-    const renda = Number(cliente.renda_mensal || 0).toLocaleString('pt-BR', {
-      style: 'currency', currency: 'BRL'
-    });
-
-    const totalAberto = Number(resumo?.total_em_aberto || 0).toLocaleString('pt-BR', {
-      style: 'currency', currency: 'BRL'
-    });
-    const totalAtrasado = Number(resumo?.total_atrasado || 0).toLocaleString('pt-BR', {
-      style: 'currency', currency: 'BRL'
-    });
+    const renda = formatCurrencyBR(cliente.renda_mensal || 0);
+    const totalAberto   = formatCurrencyBR(resumo?.total_em_aberto || 0);
+    const totalAtrasado = formatCurrencyBR(resumo?.total_atrasado || 0);
     const mediaAtraso = resumo?.media_dias_atraso ?? 0;
 
-    box.innerHTML = `
+    const boxCliente = document.getElementById('cliente-detalhes');
+
+    boxCliente.innerHTML = `
+      <h3>Cliente</h3>
       <p><strong>Nome:</strong> ${cliente.nome}</p>
       <p><strong>CPF:</strong> ${cliente.cpf_formatado || cliente.cpf}</p>
       <p><strong>Renda mensal:</strong> ${renda}</p>
@@ -502,10 +569,47 @@ async function abrirDetalhesCliente(clienteId) {
       <p><strong>Média de dias de atraso:</strong> ${mediaAtraso ? mediaAtraso.toFixed(1) : '0,0'}</p>
     `;
 
+    // 3) condições da solicitação
+    const boxSolic = document.getElementById('solicitacao-detalhes');
+    const valorSolic   = Number(solicitacao.valor_solicitado || 0);
+    const parcelas     = Number(solicitacao.parcelas_solicitadas || 0);
+
+    const { taxa, tabela } = obterTaxaDaSolicitacao(solicitacao);
+
+    let valorParcela = null;
+    let totalPago    = null;
+
+    if (taxa != null && valorSolic > 0 && parcelas > 0) {
+      valorParcela = calcularParcelaPrice(valorSolic, taxa, parcelas);
+      totalPago = valorParcela * parcelas;
+    }
+
+    const tabelaLabel = tabela
+      ? `${tabela.nome}${tabela.ano_referencia ? ' (' + tabela.ano_referencia + ')' : ''}`
+      : (solicitacao.tabela_juros_id ? `ID ${solicitacao.tabela_juros_id}` : '-');
+
+    const taxaLabel = taxa != null
+      ? `${taxa.toFixed(2).replace('.', ',')}% ao mês`
+      : '- (definida na aprovação)';
+
+    boxSolic.innerHTML = `
+      <h3>Condições da solicitação</h3>
+      <p><strong>Valor solicitado:</strong> ${formatCurrencyBR(valorSolic)}</p>
+      <p><strong>Quantidade de parcelas:</strong> ${parcelas || '-'}</p>
+      <p><strong>Tabela de juros:</strong> ${tabelaLabel}</p>
+      <p><strong>Taxa estimada:</strong> ${taxaLabel}</p>
+      <p><strong>Parcela estimada:</strong> ${
+        valorParcela != null ? formatCurrencyBR(valorParcela) : '-'
+      }</p>
+      <p><strong>Total aproximado:</strong> ${
+        totalPago != null ? formatCurrencyBR(totalPago) : '-'
+      }</p>
+    `;
+
     document.getElementById('modal-cliente').classList.remove('oculto');
   } catch (err) {
-    console.error('Erro ao abrir detalhes do cliente:', err);
-    await exibirMensagem('Erro', 'Erro ao carregar informações do cliente.');
+    console.error('Erro ao abrir detalhes da solicitação/cliente:', err);
+    await exibirMensagem('Erro', 'Erro ao carregar informações da solicitação.');
   }
 }
 
@@ -516,22 +620,23 @@ document.getElementById('btnFecharCliente')?.addEventListener('click', () => {
 tbody?.addEventListener('click', (e) => {
   const btn = e.target.closest('.link-cliente');
   if (!btn) return;
-  const clienteId = btn.dataset.clienteId;
-  abrirDetalhesCliente(clienteId);
+  const clienteId     = Number(btn.dataset.clienteId);
+  const solicitacaoId = Number(btn.dataset.solicitacaoId);
+  const solicitacao   = solicitacoes.find(s => Number(s.id) === solicitacaoId);
+
+  if (!clienteId || !solicitacao) return;
+
+  abrirDetalhesSolicitacao(clienteId, solicitacao);
 });
 
 filtroInput?.addEventListener('input', renderTabela);
 
 // eventos do modal de nova solicitação
-if (btnNovaSolicitacao) {
-  btnNovaSolicitacao.addEventListener('click', abrirModalSolicitacao);
-}
+btnNovaSolicitacao?.addEventListener('click', abrirModalSolicitacao);
+const btnFecharSolic = document.getElementById('btnFecharSolic');
+btnFecharSolic?.addEventListener('click', fecharModalSolicitacao);
+btnCancelarSolic?.addEventListener('click', fecharModalSolicitacao);
 
-const btnFecharSolic = document.getElementById('btnFecharSolicitacao');
-if (btnFecharSolic) {
-  btnFecharSolic.addEventListener('click', fecharModalSolicitacao);
-}
-btnCancelarSolic?.addEventListener('click', fecharModalSolicitacao); // NOVO
 
 if (formSolicitacao) {
   formSolicitacao.addEventListener('submit', salvarSolicitacao);

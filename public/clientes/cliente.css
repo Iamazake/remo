@@ -620,3 +620,14 @@ tr:hover {
 .renda-card strong {
   font-size: 1.3rem;
 }
+.obrigatorio {
+  color: #f97373;
+  margin-left: 4px;
+  font-weight: 600;
+}
+
+/* borda vermelha quando o campo tiver erro */
+.campo-erro {
+  border-color: #f97373 !important;
+  box-shadow: 0 0 0 1px rgba(249, 115, 115, 0.4);
+}
