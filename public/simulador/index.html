@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Simulador PMT - REMO</title>
+  <link rel="stylesheet" href="simulador.css">
+</head>
+<body>
+
+<div class="layout">
+  <!-- SIDEBAR (mesmo padrão das outras telas) -->
+  <aside class="sidebar">
+    <img src="/logosfundo.png" class="logo" alt="Remo Logo">
+
+    <ul>
+      <li><a href="/dashboard.html">🏠 Dashboard</a></li>
+      <li><a href="/clientes/index.html">👥 Clientes</a></li>
+      <li><a href="/emprestimos/index.html">💰 Empréstimos</a></li>
+      <li><a href="/pagamentos/index.html">📄 Pagamentos</a></li>
+      <li><a href="/relatorios/index.html">📊 Relatórios</a></li>
+      <li><a href="/juros/index.html">📈 Tabela de Juros</a></li>
+      <li><a href="/solicitacoes/index.html">📬 Solicitações</a></li>
+      <li><a href="/simulador/index.html" class="active">🧮 Simulador PMT</a></li>
+    </ul>
+  </aside>
+
+  <!-- CONTEÚDO -->
+  <main class="content">
+    <div class="card">
+      <h1>Simulador de Parcelas (PMT)</h1>
+      <p class="subtitulo">
+        Escolha o cliente, a tabela de juros e simule as parcelas.  
+        Se ficar bom, você já gera uma solicitação com 1 clique. 😏
+      </p>
+
+      <form id="form-simulador">
+        <!-- Linha 1: Cliente + Tabela de juros -->
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="cliente_id">Cliente</label>
+            <select id="cliente_id" required>
+              <option value="">Carregando clientes...</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="tabela_juros_id">Tabela de Juros</label>
+            <select id="tabela_juros_id">
+              <option value="">-- Selecionar --</option>
+            </select>
+            <small class="hint">
+              Ao escolher uma tabela, a taxa é preenchida automaticamente
+              de acordo com o número de parcelas.
+            </small>
+          </div>
+        </div>
+
+        <!-- Linha 2: Valor / Parcelas / Taxa -->
+        <div class="grid-3">
+          <div class="form-group">
+            <label for="valor">Valor desejado (R$)</label>
+            <input type="number" id="valor" step="0.01" min="0" required>
+          </div>
+
+          <div class="form-group">
+            <label for="parcelas">Quantidade de parcelas</label>
+            <input type="number" id="parcelas" min="1" max="120" required>
+          </div>
+
+          <div class="form-group">
+            <label for="taxa">Taxa mensal (%)</label>
+            <input type="number" id="taxa" step="0.01" min="0">
+          </div>
+        </div>
+
+        <!-- Linha 3: Datas (opcional) -->
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="data_inicio">Data 1ª parcela</label>
+            <input type="date" id="data_inicio">
+          </div>
+
+          <div class="form-group">
+            <label for="dia_vencimento">Dia de vencimento</label>
+            <input type="number" id="dia_vencimento" min="1" max="31">
+          </div>
+        </div>
+
+        <!-- Botões -->
+        <div class="acoes">
+          <button type="submit" id="btnSimular">Simular</button>
+          <button type="button" id="btnGerarSolicitacao" class="btn-secundario">
+            Gerar solicitação a partir desta simulação
+          </button>
+        </div>
+      </form>
+
+      <!-- Resultado da simulação -->
+        <div id="resultado" class="resultado" style="display:none;">
+        <div class="resultado-top">
+            <div>
+            <h2>Resultado da simulação</h2>
+            <p class="resultado-sub">Resumo financeiro do contrato simulado.</p>
+            </div>
+
+            <div class="resultado-tags">
+            <span class="tag" id="res_parcelas_tag">-x</span>
+            <span class="tag" id="res_taxa_tag">Taxa -</span>
+            </div>
+        </div>
+
+        <div class="resumo-cards">
+            <div class="resumo-card">
+            <span class="resumo-label">Parcela aproximada</span>
+            <span class="resumo-valor" id="valor_parcela">R$ 0,00</span>
+            <span class="resumo-caption">Valor estimado de cada prestação.</span>
+            </div>
+
+            <div class="resumo-card">
+            <span class="resumo-label">Total pago</span>
+            <span class="resumo-valor" id="total_pago">R$ 0,00</span>
+            <span class="resumo-caption">Principal + juros durante todo o contrato.</span>
+            </div>
+
+            <div class="resumo-card">
+            <span class="resumo-label">Total de juros</span>
+            <span class="resumo-valor destaque" id="total_juros">R$ 0,00</span>
+            <span class="resumo-caption">Custo do dinheiro nessa operação.</span>
+            </div>
+        </div>
+        </div>
+
+        <div id="tabela-parcelas" class="tabela-parcelas" style="display:none;">
+        <div class="tabela-header">
+            <div>
+            <h3>Grade de parcelas (simulação)</h3>
+            <p class="tabela-caption">
+                Cronograma projetado de vencimentos e saldo devedor.
+            </p>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+            <tr>
+                <th>#</th>
+                <th>Vencimento</th>
+                <th>Parcela (R$)</th>
+                <th>Saldo após pagamento (R$)</th>
+            </tr>
+            </thead>
+            <tbody id="lista-parcelas"></tbody>
+        </table>
+        </div>
+    </div>
+  </main>
+</div>
+
+<script src="simulador.js"></script>
+</body>
+</html>

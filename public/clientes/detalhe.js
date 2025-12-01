@@ -25,6 +25,14 @@ function formatarRenda(valor) {
       minimumFractionDigits: 2,
     });
   }
+
+  function formatCurrencyBR(valor) {
+  return Number(valor || 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+  });
+}
   
   function formatarDataCurta(dataISO) {
     if (!dataISO) return "-";
@@ -87,6 +95,18 @@ function formatarRenda(valor) {
       const dados = await resp.json();
       const c = dados.cliente;
       const emprestimos = dados.emprestimos || [];
+
+      // resumo financeiro (total em aberto, atrasado, média atraso)
+      let resumo = null;
+      try {
+        const respResumo = await authFetch(`/api/clientes/${id}/resumo-financeiro`);
+        if (respResumo.ok) {
+          resumo = await respResumo.json();
+        }
+      } catch (e) {
+        console.warn("Não foi possível carregar resumo financeiro:", e);
+      }
+
   
       // título e card
       document.getElementById("titulo-cliente").innerText = `Cliente #${c.id}`;
@@ -107,6 +127,24 @@ function formatarRenda(valor) {
         c.emprestimos_ativos || 0;
       document.getElementById("dc-atrasadas").innerText =
         c.parcelas_atrasadas || 0;
+
+        // preencher resumo financeiro nos novos cards
+      if (resumo) {
+        document.getElementById("dc-total-em-aberto").innerText =
+          formatCurrencyBR(resumo.total_em_aberto);
+        document.getElementById("dc-total-atraso").innerText =
+          formatCurrencyBR(resumo.total_atrasado);
+        document.getElementById("dc-media-atraso").innerText =
+          resumo.media_dias_atraso
+            ? resumo.media_dias_atraso.toFixed(1)
+            : "0,0";
+      } else {
+        // fallback pra não deixar lixo na tela
+        document.getElementById("dc-total-em-aberto").innerText = "R$ 0,00";
+        document.getElementById("dc-total-atraso").innerText = "R$ 0,00";
+        document.getElementById("dc-media-atraso").innerText = "0,0";
+      }
+
   
       // botão novo empréstimo já com o cliente
       const btnNovo = document.getElementById("btn-novo-emprestimo");

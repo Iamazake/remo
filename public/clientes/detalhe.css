@@ -225,3 +225,37 @@
     background: rgba(239, 68, 68, 0.14);
     color: #fecaca;
 }
+/* resumo financeiro (total em aberto, atraso, média atraso) */
+.resumo-financeiro {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.rf-item {
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid rgba(55, 65, 81, 0.9);
+}
+
+.rf-item .lbl {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #9ca3af;
+    margin-bottom: 2px;
+}
+
+.rf-item strong {
+    font-size: 15px;
+}
+
+/* mobile */
+@media (max-width: 900px) {
+    .resumo-financeiro {
+        grid-template-columns: 1fr;
+    }
+}

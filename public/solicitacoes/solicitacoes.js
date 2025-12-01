@@ -98,6 +98,48 @@ function formatCurrencyBR(v) {
   });
 }
 
+function calcularIdade(dataStr) {
+  if (!dataStr) return null;
+  const dt = new Date(dataStr);
+  if (Number.isNaN(dt.getTime())) return null;
+  const hoje = new Date();
+  let idade = hoje.getFullYear() - dt.getFullYear();
+  const m = hoje.getMonth() - dt.getMonth();
+  if (m < 0 || (m === 0 && hoje.getDate() < dt.getDate())) {
+    idade--;
+  }
+  return idade;
+}
+
+function formatarMeses(meses) {
+  if (!meses || meses <= 0) return 'menos de 1 mês';
+  const anos = Math.floor(meses / 12);
+  const restoMeses = meses % 12;
+  const partes = [];
+  if (anos > 0) partes.push(`${anos} ano${anos > 1 ? 's' : ''}`);
+  if (restoMeses > 0) partes.push(`${restoMeses} mês${restoMeses > 1 ? 'es' : ''}`);
+  return partes.join(' e ');
+}
+
+function formatarTempoRelacao(dataStr) {
+  if (!dataStr) return '-';
+  const inicio = new Date(dataStr);
+  if (Number.isNaN(inicio.getTime())) return '-';
+  const hoje = new Date();
+  let anos = hoje.getFullYear() - inicio.getFullYear();
+  let meses = hoje.getMonth() - inicio.getMonth();
+  if (meses < 0) {
+    anos--;
+    meses += 12;
+  }
+  if (anos <= 0 && meses <= 0) return 'menos de 1 mês';
+  const partes = [];
+  if (anos > 0) partes.push(`${anos} ano${anos > 1 ? 's' : ''}`);
+  if (meses > 0) partes.push(`${meses} mês${meses > 1 ? 'es' : ''}`);
+  return partes.join(' e ');
+}
+
+
 // NOVO: modal de confirmação com suporte a input
 function abrirModalConfirmacao(titulo, mensagem, opcoes = {}) {
   if (!modalConfirmacao) {
@@ -539,37 +581,99 @@ async function tratarRespostaAcao(resp, mensagemOk) {
 // NOVO: garante abertura do modal com dados formatados
 async function abrirDetalhesSolicitacao(clienteId, solicitacao) {
   try {
-    // dados básicos do cliente
-    const respCli = await authFetch(`/api/clientes/${clienteId}`);
+    // 1) busca paralela dos dados do cliente
+    const [respCli, respResumo, respRenda, respEmp] = await Promise.all([
+      authFetch(`/api/clientes/${clienteId}`),
+      authFetch(`/api/clientes/${clienteId}/resumo-financeiro`),
+      authFetch(`/api/clientes/${clienteId}/renda`),
+      authFetch(`/api/clientes/${clienteId}/empregos`)
+    ]);
+
     if (!respCli.ok) throw new Error('Erro ao buscar cliente');
     const cliente = await respCli.json();
+    const resumo = respResumo.ok ? await respResumo.json() : null;
+    const rendaInfo = respRenda.ok ? await respRenda.json() : null;
+    const empregos = respEmp.ok ? await respEmp.json() : [];
+    const emprego = empregos.length ? empregos[0] : null;
 
-    // resumo financeiro
-    const respRes = await authFetch(`/api/clientes/${clienteId}/resumo-financeiro`);
-    const resumo = respRes.ok ? await respRes.json() : null;
+    // ===== Cliente / demografia =====
+    const idade = calcularIdade(cliente.data_nascimento);
+    const cidadeUf = [cliente.cidade, cliente.estado].filter(Boolean).join(' / ');
+    const dependentes = cliente.numero_dependentes != null ? cliente.numero_dependentes : '-';
+    const tempoResidencia = formatarMeses(cliente.tempo_residencia_meses);
+    const tempoRelacao = formatarTempoRelacao(cliente.data_cadastro);
 
-    const renda = formatCurrencyBR(cliente.renda_mensal || 0);
+    // ===== Renda / margem =====
+    const salarioBruto = rendaInfo
+      ? Number(rendaInfo.salario_bruto || 0)
+      : Number(cliente.renda_mensal || 0);
+
+    const descontosEmp = rendaInfo ? Number(rendaInfo.descontos_emprestimos || 0) : 0;
+
+    const salarioLiquido = rendaInfo
+      ? Number(rendaInfo.salario_liquido || 0)
+      : (salarioBruto - descontosEmp);
+
+    const margemDisponivel = rendaInfo ? Number(rendaInfo.margem_disponivel || 0) : null;
+
     const totalAberto   = formatCurrencyBR(resumo?.total_em_aberto || 0);
     const totalAtrasado = formatCurrencyBR(resumo?.total_atrasado || 0);
-    const mediaAtraso = resumo?.media_dias_atraso ?? 0;
+    const mediaAtraso   = resumo?.media_dias_atraso ?? 0;
 
+    const rendaCadastroLabel = formatCurrencyBR(cliente.renda_mensal || 0);
+    const salarioBrutoLabel  = formatCurrencyBR(salarioBruto);
+    const salarioLiqLabel    = formatCurrencyBR(salarioLiquido);
+    const margemLabel        = margemDisponivel != null ? formatCurrencyBR(margemDisponivel) : '-';
+
+    // ===== Coluna "Cliente" =====
     const boxCliente = document.getElementById('cliente-detalhes');
 
     boxCliente.innerHTML = `
       <h3>Cliente</h3>
       <p><strong>Nome:</strong> ${cliente.nome}</p>
       <p><strong>CPF:</strong> ${cliente.cpf_formatado || cliente.cpf}</p>
-      <p><strong>Renda mensal:</strong> ${renda}</p>
-      <p><strong>Situação profissional:</strong> ${cliente.situacao_profissional || '-'}</p>
+      <p><strong>Idade:</strong> ${idade != null ? idade + ' anos' : '-'}</p>
+      <p><strong>Cidade/UF:</strong> ${cidadeUf || '-'}</p>
+      <p><strong>Estado civil:</strong> ${cliente.estado_civil || '-'}</p>
+      <p><strong>Dependentes:</strong> ${dependentes}</p>
+      <p><strong>Tipo de residência:</strong> ${cliente.tipo_residencia || '-'}</p>
+      <p><strong>Tempo de residência:</strong> ${tempoResidencia}</p>
+      <p><strong>Tempo de relacionamento:</strong> ${tempoRelacao}</p>
+
       <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;">
+
+      <h4>Renda & histórico</h4>
+      <p><strong>Renda (cadastro):</strong> ${rendaCadastroLabel}</p>
+      ${rendaInfo ? `
+        <p><strong>Salário bruto:</strong> ${salarioBrutoLabel}</p>
+        <p><strong>Descontos com empréstimos:</strong> ${formatCurrencyBR(descontosEmp)}</p>
+        <p><strong>Salário líquido:</strong> ${salarioLiqLabel}</p>
+        <p><strong>Margem disponível:</strong> ${margemLabel}</p>
+      ` : ''}
+
       <p><strong>Empréstimos ativos:</strong> ${resumo ? resumo.qtd_emprestimos_ativos : 0}</p>
       <p><strong>Total em aberto:</strong> ${totalAberto}</p>
       <p><strong>Total em atraso:</strong> ${totalAtrasado}</p>
       <p><strong>Parcelas atrasadas:</strong> ${resumo ? resumo.parcelas_atrasadas : 0}</p>
       <p><strong>Média de dias de atraso:</strong> ${mediaAtraso ? mediaAtraso.toFixed(1) : '0,0'}</p>
+
+      <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;">
+
+      <h4>Emprego / fonte de renda</h4>
+      ${
+        emprego
+          ? `
+            <p><strong>Empresa:</strong> ${emprego.empresa}</p>
+            <p><strong>Cargo:</strong> ${emprego.cargo || '-'}</p>
+            <p><strong>Natureza da ocupação:</strong> ${emprego.natureza_ocupacao}</p>
+            <p><strong>Tempo de empresa:</strong> ${formatarMeses(emprego.tempo_empresa_meses)}</p>
+            <p><strong>Tipo de comprovante:</strong> ${emprego.tipo_comprovante || '-'}</p>
+          `
+          : '<p>Nenhum vínculo profissional cadastrado.</p>'
+      }
     `;
 
-    // 3) condições da solicitação
+    // ===== Coluna "Condições da solicitação" =====
     const boxSolic = document.getElementById('solicitacao-detalhes');
     const valorSolic   = Number(solicitacao.valor_solicitado || 0);
     const parcelas     = Number(solicitacao.parcelas_solicitadas || 0);
@@ -579,9 +683,9 @@ async function abrirDetalhesSolicitacao(clienteId, solicitacao) {
     let valorParcela = null;
     let totalPago    = null;
 
-    if (taxa != null && valorSolic > 0 && parcelas > 0) {
+    if (taxa != null && parcelas && valorSolic) {
       valorParcela = calcularParcelaPrice(valorSolic, taxa, parcelas);
-      totalPago = valorParcela * parcelas;
+      totalPago    = valorParcela * parcelas;
     }
 
     const tabelaLabel = tabela
@@ -591,6 +695,38 @@ async function abrirDetalhesSolicitacao(clienteId, solicitacao) {
     const taxaLabel = taxa != null
       ? `${taxa.toFixed(2).replace('.', ',')}% ao mês`
       : '- (definida na aprovação)';
+
+    // comprometimento de renda / margem
+    let percRenda = null;
+    let percMargem = null;
+    if (valorParcela != null && salarioLiquido > 0) {
+      percRenda = (valorParcela / salarioLiquido) * 100;
+    }
+    if (valorParcela != null && margemDisponivel > 0) {
+      percMargem = (valorParcela / margemDisponivel) * 100;
+    }
+
+    // flags simples de risco
+    const riskFlags = [];
+    if (percRenda != null) {
+      if (percRenda > 40) {
+        riskFlags.push('🔴 Alta taxa de comprometimento da renda (> 40%)');
+      } else if (percRenda > 30) {
+        riskFlags.push('🟠 Comprometimento de renda moderado (30% a 40%)');
+      } else {
+        riskFlags.push('🟢 Comprometimento de renda confortável (< 30%)');
+      }
+    }
+
+    if (resumo?.parcelas_atrasadas > 0) {
+      riskFlags.push(`🟠 Possui ${resumo.parcelas_atrasadas} parcela(s) em atraso`);
+    }
+    if (resumo?.total_atrasado > 0) {
+      riskFlags.push('🟠 Existe saldo em atraso em contratos anteriores');
+    }
+    if (resumo?.media_dias_atraso && resumo.media_dias_atraso > 15) {
+      riskFlags.push(`🔴 Média de dias de atraso alta (${resumo.media_dias_atraso.toFixed(1)} dias)`);
+    }
 
     boxSolic.innerHTML = `
       <h3>Condições da solicitação</h3>
@@ -604,14 +740,45 @@ async function abrirDetalhesSolicitacao(clienteId, solicitacao) {
       <p><strong>Total aproximado:</strong> ${
         totalPago != null ? formatCurrencyBR(totalPago) : '-'
       }</p>
+
+      ${
+        percRenda != null || percMargem != null
+          ? `
+            <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;">
+            <h4>Comprometimento</h4>
+            ${
+              percRenda != null
+                ? `<p><strong>Parcela / renda líquida:</strong> ${percRenda.toFixed(1)}%</p>`
+                : ''
+            }
+            ${
+              percMargem != null
+                ? `<p><strong>Parcela / margem disponível:</strong> ${percMargem.toFixed(1)}%</p>`
+                : ''
+            }
+          `
+          : ''
+      }
+
+      <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;">
+
+      <h4>Alertas automáticos</h4>
+      ${
+        riskFlags.length
+          ? `<ul class="lista-alertas">
+              ${riskFlags.map(f => `<li>${f}</li>`).join('')}
+             </ul>`
+          : '<p>Nenhum alerta relevante.</p>'
+      }
     `;
 
     document.getElementById('modal-cliente').classList.remove('oculto');
   } catch (err) {
     console.error('Erro ao abrir detalhes da solicitação/cliente:', err);
-    await exibirMensagem('Erro', 'Erro ao carregar informações da solicitação.');
+    alert('Erro ao carregar detalhes da solicitação.');
   }
 }
+
 
 document.getElementById('btnFecharCliente')?.addEventListener('click', () => {
   document.getElementById('modal-cliente').classList.add('oculto');

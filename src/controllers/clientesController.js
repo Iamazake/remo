@@ -583,16 +583,48 @@ async function resumoFinanceiroCliente(req, res) {
     const qtdEmpAtivos = empRows[0]?.qtd_emprestimos_ativos || 0;
 
     // 2) valores e atrasos (pagamentos)
+    //    - total_em_aberto: tudo que não está pago
+    //    - total_atrasado / parcelas_atrasadas: não pago E data_prevista < hoje
+    //    - média de atraso:
+    //        pago atrasado -> diferença data_pagamento x data_prevista
+    //        ainda não pago, já vencido -> diferença hoje x data_prevista
     const [pagRows] = await db.query(
       `
       SELECT
-        SUM(CASE WHEN p.status <> 'pago' THEN p.valor ELSE 0 END)        AS total_em_aberto,
-        SUM(CASE WHEN p.status = 'atrasado' THEN p.valor ELSE 0 END)     AS total_atrasado,
-        SUM(CASE WHEN p.status = 'atrasado' THEN 1 ELSE 0 END)           AS parcelas_atrasadas,
+        SUM(
+          CASE 
+            WHEN p.status <> 'pago' THEN p.valor 
+            ELSE 0 
+          END
+        ) AS total_em_aberto,
+
+        SUM(
+          CASE 
+            WHEN p.status <> 'pago' AND p.data_prevista < CURDATE() THEN p.valor
+            ELSE 0 
+          END
+        ) AS total_atrasado,
+
+        SUM(
+          CASE 
+            WHEN p.status <> 'pago' AND p.data_prevista < CURDATE() THEN 1
+            ELSE 0 
+          END
+        ) AS parcelas_atrasadas,
+
         AVG(
           CASE 
-            WHEN p.status = 'atrasado' AND p.data_pagamento IS NOT NULL
+            -- pago com atraso
+            WHEN p.status = 'pago' 
+                 AND p.data_pagamento IS NOT NULL
+                 AND p.data_pagamento > p.data_prevista
               THEN DATEDIFF(p.data_pagamento, p.data_prevista)
+
+            -- ainda pendente, mas já vencido (atraso corrente)
+            WHEN p.status <> 'pago'
+                 AND p.data_prevista < CURDATE()
+              THEN DATEDIFF(CURDATE(), p.data_prevista)
+
             ELSE NULL
           END
         ) AS media_dias_atraso
@@ -610,13 +642,16 @@ async function resumoFinanceiroCliente(req, res) {
       total_em_aberto: Number(resumo.total_em_aberto || 0),
       total_atrasado: Number(resumo.total_atrasado || 0),
       parcelas_atrasadas: resumo.parcelas_atrasadas || 0,
-      media_dias_atraso: resumo.media_dias_atraso ? Number(resumo.media_dias_atraso) : 0
+      media_dias_atraso: resumo.media_dias_atraso
+        ? Number(resumo.media_dias_atraso)
+        : 0
     });
   } catch (err) {
     console.error('Erro no resumo financeiro do cliente:', err);
     res.status(500).json({ error: 'Erro ao montar resumo financeiro do cliente.' });
   }
 }
+
 
 
 // ======================== EXPORTAR TODAS ========================

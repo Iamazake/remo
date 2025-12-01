@@ -160,12 +160,21 @@ function renderTabela() {
   grupos.forEach(grupo => {
     const parcelas = grupo.parcelas;
 
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
     const totalDevido = parcelas
       .filter(parc => parc.status !== 'pago')
       .reduce((acc, parc) => acc + Number(parc.valor || 0), 0);
 
     const qtdPend = parcelas.filter(parc => parc.status !== 'pago').length;
-    const qtdAtras = parcelas.filter(parc => parc.status === 'atrasado').length;
+
+    const qtdAtras = parcelas.filter(parc => {
+      if (parc.status === 'pago') return false;
+      const prev = normalizarDataDia(parc.data_prevista);
+      return prev < hoje;          // vencido = atrasado
+    }).length;
+
 
     let resumo = [];
     if (qtdPend > 0) resumo.push(`${qtdPend} em aberto`);

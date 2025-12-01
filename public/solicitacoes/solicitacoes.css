@@ -324,9 +324,10 @@
   width: 520px;
 }
 .modal-content-lg {
-  width: 780px;
-  max-width: 95vw;
+  width: 880px;
+  max-width: 98vw;
 }
+
 
 .modal-header {
   display: flex;
@@ -454,4 +455,13 @@
   margin: 4px 0;
   font-size: 14px;
   color: #f0f3ff;
+}
+.lista-alertas {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
+.lista-alertas li {
+  margin-bottom: 2px;
 }
