@@ -445,7 +445,7 @@ exports.reprovarSolicitacao = async (req, res) => {
     if (erroPerm) return;
 
     const { id } = req.params;
-    const { motivo_recusa } = req.body;
+    const motivoLimpo = (req.body?.motivo_recusa || "").toString().trim();
     const usuarioId = req.user.id;
 
     const [rows] = await db.execute(
@@ -465,10 +465,13 @@ exports.reprovarSolicitacao = async (req, res) => {
               analisado_em = NOW(),
               motivo_recusa = ?
         WHERE id = ?`,
-      [usuarioId, motivo_recusa || null, id]
+      [usuarioId, motivoLimpo || null, id]
     );
 
-    return res.json({ message: 'Solicitação reprovada.' });
+    return res.json({
+      message: 'Solicitação reprovada.',
+      motivo_recusa: motivoLimpo || null,
+    });
   } catch (err) {
     console.error('[SOLIC] Erro ao reprovar solicitação:', err);
     return res.status(500).json({ error: 'Erro ao reprovar solicitação.' });

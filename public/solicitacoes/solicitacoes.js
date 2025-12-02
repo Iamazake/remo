@@ -17,7 +17,11 @@ function authFetch(url, options = {}) {
 }
 
 const tbody = document.getElementById('lista-solicitacoes');
-const filtroInput = document.getElementById('filtro');
+// tenta achar por dois ids possíveis
+const filtroInput =
+  document.getElementById('filtro') ||
+  document.getElementById('filtro-solicitacoes');
+
 
 let solicitacoes = [];
 let modalResolve;
@@ -96,6 +100,15 @@ function formatCurrencyBR(v) {
     style: 'currency',
     currency: 'BRL'
   });
+}
+
+function escapeHtml(text = '') {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function calcularIdade(dataStr) {
@@ -386,6 +399,10 @@ function renderTabela() {
   for (const s of filtradas) {
     const tr = document.createElement('tr');
 
+    const motivoRecusaHtml = s.motivo_recusa
+      ? `<span class="motivo-recusa" title="Motivo informado pelo analista">Motivo: ${escapeHtml(s.motivo_recusa)}</span>`
+      : '';
+
     tr.innerHTML = `
       <td>${s.id}</td>
       <td>
@@ -399,10 +416,11 @@ function renderTabela() {
       </td>
       <td>R$ ${Number(s.valor_solicitado).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
       <td>${s.parcelas_solicitadas}</td>
-      <td>
+      <td class="status-cell">
         <span class="status-pill status-${s.status_solicitacao}">
           ${formatarStatus(s.status_solicitacao)}
         </span>
+        ${motivoRecusaHtml}
       </td>
       <td>${formatarData(s.criado_em)}</td>
       <td class="acoes"></td>
@@ -569,19 +587,23 @@ async function liberarSolicitacao(id) {
 // NOVO: trata respostas sempre com o modal customizado
 async function tratarRespostaAcao(resp, mensagemOk) {
   const data = await resp.json().catch(() => ({}));
-  if (resp.ok) {
-    await exibirMensagem('Tudo certo', mensagemOk);
-    await carregarSolicitacoes();
+  if (!resp.ok) {
+    await exibirMensagem('Erro', 'Erro: ' + (data.error || resp.status));
     return;
   }
 
-  await exibirMensagem('Erro', 'Erro: ' + (data.error || resp.status));
+  await carregarSolicitacoes();
+  let mensagemFinal = mensagemOk;
+  if (data && data.motivo_recusa) {
+    mensagemFinal += `\nMotivo informado: ${data.motivo_recusa}`;
+  }
+  await exibirMensagem('Tudo certo', mensagemFinal);
 }
 
 // NOVO: garante abertura do modal com dados formatados
 async function abrirDetalhesSolicitacao(clienteId, solicitacao) {
   try {
-    // 1) busca paralela dos dados do cliente
+    // 1) Busca paralela dos dados do cliente
     const [respCli, respResumo, respRenda, respEmp] = await Promise.all([
       authFetch(`/api/clientes/${clienteId}`),
       authFetch(`/api/clientes/${clienteId}/resumo-financeiro`),
@@ -590,17 +612,18 @@ async function abrirDetalhesSolicitacao(clienteId, solicitacao) {
     ]);
 
     if (!respCli.ok) throw new Error('Erro ao buscar cliente');
-    const cliente = await respCli.json();
-    const resumo = respResumo.ok ? await respResumo.json() : null;
+
+    const cliente   = await respCli.json();
+    const resumo    = respResumo.ok ? await respResumo.json() : null;
     const rendaInfo = respRenda.ok ? await respRenda.json() : null;
-    const empregos = respEmp.ok ? await respEmp.json() : [];
-    const emprego = empregos.length ? empregos[0] : null;
+    const empregos  = respEmp.ok ? await respEmp.json() : [];
+    const emprego   = empregos.length ? empregos[0] : null;
 
     // ===== Cliente / demografia =====
-    const idade = calcularIdade(cliente.data_nascimento);
-    const cidadeUf = [cliente.cidade, cliente.estado].filter(Boolean).join(' / ');
-    const dependentes = cliente.numero_dependentes != null ? cliente.numero_dependentes : '-';
-    const tempoResidencia = formatarMeses(cliente.tempo_residencia_meses);
+    const idade        = calcularIdade(cliente.data_nascimento);
+    const cidadeUf     = [cliente.cidade, cliente.estado].filter(Boolean).join(' / ');
+    const dependentes  = cliente.numero_dependentes != null ? cliente.numero_dependentes : '-';
+    const tempoResid   = formatarMeses(cliente.tempo_residencia_meses);
     const tempoRelacao = formatarTempoRelacao(cliente.data_cadastro);
 
     // ===== Renda / margem =====
@@ -637,19 +660,23 @@ async function abrirDetalhesSolicitacao(clienteId, solicitacao) {
       <p><strong>Estado civil:</strong> ${cliente.estado_civil || '-'}</p>
       <p><strong>Dependentes:</strong> ${dependentes}</p>
       <p><strong>Tipo de residência:</strong> ${cliente.tipo_residencia || '-'}</p>
-      <p><strong>Tempo de residência:</strong> ${tempoResidencia}</p>
+      <p><strong>Tempo de residência:</strong> ${tempoResid}</p>
       <p><strong>Tempo de relacionamento:</strong> ${tempoRelacao}</p>
 
       <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;">
 
       <h4>Renda & histórico</h4>
       <p><strong>Renda (cadastro):</strong> ${rendaCadastroLabel}</p>
-      ${rendaInfo ? `
-        <p><strong>Salário bruto:</strong> ${salarioBrutoLabel}</p>
-        <p><strong>Descontos com empréstimos:</strong> ${formatCurrencyBR(descontosEmp)}</p>
-        <p><strong>Salário líquido:</strong> ${salarioLiqLabel}</p>
-        <p><strong>Margem disponível:</strong> ${margemLabel}</p>
-      ` : ''}
+      ${
+        rendaInfo
+          ? `
+            <p><strong>Salário bruto:</strong> ${salarioBrutoLabel}</p>
+            <p><strong>Descontos com empréstimos:</strong> ${formatCurrencyBR(descontosEmp)}</p>
+            <p><strong>Salário líquido:</strong> ${salarioLiqLabel}</p>
+            <p><strong>Margem disponível:</strong> ${margemLabel}</p>
+          `
+          : ''
+      }
 
       <p><strong>Empréstimos ativos:</strong> ${resumo ? resumo.qtd_emprestimos_ativos : 0}</p>
       <p><strong>Total em aberto:</strong> ${totalAberto}</p>
@@ -674,9 +701,9 @@ async function abrirDetalhesSolicitacao(clienteId, solicitacao) {
     `;
 
     // ===== Coluna "Condições da solicitação" =====
-    const boxSolic = document.getElementById('solicitacao-detalhes');
-    const valorSolic   = Number(solicitacao.valor_solicitado || 0);
-    const parcelas     = Number(solicitacao.parcelas_solicitadas || 0);
+    const boxSolic   = document.getElementById('solicitacao-detalhes');
+    const valorSolic = Number(solicitacao.valor_solicitado || 0);
+    const parcelas   = Number(solicitacao.parcelas_solicitadas || 0);
 
     const { taxa, tabela } = obterTaxaDaSolicitacao(solicitacao);
 
@@ -697,8 +724,9 @@ async function abrirDetalhesSolicitacao(clienteId, solicitacao) {
       : '- (definida na aprovação)';
 
     // comprometimento de renda / margem
-    let percRenda = null;
+    let percRenda  = null;
     let percMargem = null;
+
     if (valorParcela != null && salarioLiquido > 0) {
       percRenda = (valorParcela / salarioLiquido) * 100;
     }
@@ -706,7 +734,7 @@ async function abrirDetalhesSolicitacao(clienteId, solicitacao) {
       percMargem = (valorParcela / margemDisponivel) * 100;
     }
 
-    // flags simples de risco
+    // flags de risco
     const riskFlags = [];
     if (percRenda != null) {
       if (percRenda > 40) {
@@ -728,8 +756,33 @@ async function abrirDetalhesSolicitacao(clienteId, solicitacao) {
       riskFlags.push(`🔴 Média de dias de atraso alta (${resumo.media_dias_atraso.toFixed(1)} dias)`);
     }
 
+    const statusPillHtml = `
+      <span class="status-pill ${classeStatus(solicitacao.status_solicitacao)}">
+        ${formatarStatus(solicitacao.status_solicitacao)}
+      </span>
+    `;
+
+    const motivoDetalhe = solicitacao.motivo_recusa
+      ? `<p class="motivo-recusa motivo-recusa--detail">
+           Motivo da reprovação: ${escapeHtml(solicitacao.motivo_recusa)}
+         </p>`
+      : '';
+
+    const alertsHtml = riskFlags.length
+      ? `
+        <ul class="lista-alertas">
+          ${riskFlags.map(f => `<li>${f}</li>`).join('')}
+        </ul>
+      `
+      : '<p>Nenhum alerta relevante.</p>';
+
     boxSolic.innerHTML = `
       <h3>Condições da solicitação</h3>
+      <p>
+        <strong>Status atual:</strong>
+        ${statusPillHtml}
+      </p>
+      ${motivoDetalhe}
       <p><strong>Valor solicitado:</strong> ${formatCurrencyBR(valorSolic)}</p>
       <p><strong>Quantidade de parcelas:</strong> ${parcelas || '-'}</p>
       <p><strong>Tabela de juros:</strong> ${tabelaLabel}</p>
@@ -742,7 +795,7 @@ async function abrirDetalhesSolicitacao(clienteId, solicitacao) {
       }</p>
 
       ${
-        percRenda != null || percMargem != null
+        (percRenda != null || percMargem != null)
           ? `
             <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;">
             <h4>Comprometimento</h4>
@@ -763,63 +816,10 @@ async function abrirDetalhesSolicitacao(clienteId, solicitacao) {
       <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;">
 
       <h4>Alertas automáticos</h4>
-      ${
-        riskFlags.length
-          ? `<ul class="lista-alertas">
-              ${riskFlags.map(f => `<li>${f}</li>`).join('')}
-             </ul>`
-          : '<p>Nenhum alerta relevante.</p>'
-      }
+      ${alertsHtml}
     `;
-
-    document.getElementById('modal-cliente').classList.remove('oculto');
   } catch (err) {
-    console.error('Erro ao abrir detalhes da solicitação/cliente:', err);
-    alert('Erro ao carregar detalhes da solicitação.');
+    console.error('Erro ao abrir detalhes da solicitação', err);
+    await exibirMensagem('Erro', 'Não foi possível carregar os detalhes da solicitação.');
   }
 }
-
-
-document.getElementById('btnFecharCliente')?.addEventListener('click', () => {
-  document.getElementById('modal-cliente').classList.add('oculto');
-});
-
-tbody?.addEventListener('click', (e) => {
-  const btn = e.target.closest('.link-cliente');
-  if (!btn) return;
-  const clienteId     = Number(btn.dataset.clienteId);
-  const solicitacaoId = Number(btn.dataset.solicitacaoId);
-  const solicitacao   = solicitacoes.find(s => Number(s.id) === solicitacaoId);
-
-  if (!clienteId || !solicitacao) return;
-
-  abrirDetalhesSolicitacao(clienteId, solicitacao);
-});
-
-filtroInput?.addEventListener('input', renderTabela);
-
-// eventos do modal de nova solicitação
-btnNovaSolicitacao?.addEventListener('click', abrirModalSolicitacao);
-const btnFecharSolic = document.getElementById('btnFecharSolic');
-btnFecharSolic?.addEventListener('click', fecharModalSolicitacao);
-btnCancelarSolic?.addEventListener('click', fecharModalSolicitacao);
-
-
-if (formSolicitacao) {
-  formSolicitacao.addEventListener('submit', salvarSolicitacao);
-}
-// inicia
-(async function init() {
-  await Promise.all([
-    carregarClientes(),
-    carregarTabelasJuros()
-  ]);
-
-  await carregarSolicitacoes();
-
-  // NOVO: se a solicitação veio da tela de empréstimos, avisa e limpa o flag
-  if (localStorage.getItem('solicitacoesNeedsRefresh')) {
-    localStorage.removeItem('solicitacoesNeedsRefresh');
-    await exibirMensagem('Solicitação criada', 'Incluímos uma nova solicitação a partir da tela de Empréstimos.');
-  }
-})();

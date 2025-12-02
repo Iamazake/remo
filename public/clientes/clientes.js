@@ -12,11 +12,15 @@ const DOMINIOS_POR_SELECT = [
   { id: "escolaridade", tipo: "dom_escolaridade" },
   { id: "emp_natureza", tipo: "dom_natureza_ocupacao" },
   { id: "emp_tipo_comprovante", tipo: "dom_tipo_comprovante" },
+    { id: "estado", tipo: "dom_uf" },          // UF do endereço
+  { id: "rg_uf", tipo: "dom_uf" },           // UF do RG
+  { id: "nacionalidade", tipo: "dom_nacionalidade" },
 ];
 
 const DOMINIOS_LISTAS = [
   "dom_tipo_telefone",
   "dom_tipo_conta_bancaria",
+  "dom_banco",              // <--- ADICIONA ISSO
 ];
 
 let listaClientes = [];
@@ -545,7 +549,9 @@ function renderContas() {
         <div class="dynamic-row conta-row" data-index="${index}">
           <div class="form-field">
             <label>Banco</label>
-            <input data-field="banco" value="${conta.banco || ""}">
+            <select data-field="banco">
+              ${gerarOptionsDominio("dom_banco", conta.banco)}
+            </select>
           </div>
           <div class="form-field">
             <label>Agência</label>
@@ -577,6 +583,7 @@ function renderContas() {
     })
     .join("");
 }
+
 
 function adicionarConta() {
   contasState.push({ banco: "", agencia: "", conta: "", digito: "", tipo_conta: "", principal: false });
