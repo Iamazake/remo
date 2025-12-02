@@ -20,7 +20,8 @@ const tbody = document.getElementById('lista-solicitacoes');
 // tenta achar por dois ids possíveis
 const filtroInput =
   document.getElementById('filtro') ||
-  document.getElementById('filtro-solicitacoes');
+  document.getElementById('filtro-solicitacoes') ||
+  null;
 
 
 let solicitacoes = [];
@@ -379,7 +380,7 @@ async function salvarSolicitacao(e) {
 
 
 function renderTabela() {
-  const filtro = (filtroInput.value || '').toLowerCase();
+  const filtro = (filtroInput?.value || '').toLowerCase();
   tbody.innerHTML = '';
 
   const filtradas = solicitacoes.filter((s) => {
@@ -823,3 +824,10 @@ async function abrirDetalhesSolicitacao(clienteId, solicitacao) {
     await exibirMensagem('Erro', 'Não foi possível carregar os detalhes da solicitação.');
   }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  carregarSolicitacoes();
+  carregarClientes();
+  carregarTabelasJuros();
+});
+
