@@ -44,6 +44,8 @@ async function criarCliente(req, res) {
       rg_data_expedicao,
       nome_pai,
       nome_mae,
+      orgao_id,
+      suborgao_id,
     } = req.body;
 
     if (!nome || !cpf) {
@@ -90,6 +92,10 @@ async function criarCliente(req, res) {
         .json({ error: "N�mero de dependentes inv�lido." });
     }
     numero_dependentes = dependentesNormalizado;
+
+    orgao_id = orgao_id ? parseInt(orgao_id, 10) : null;
+    suborgao_id = suborgao_id ? parseInt(suborgao_id, 10) : null;
+
 
     tipo_residencia = await validarDominioOpcional(
       "dom_tipo_residencia",
@@ -142,10 +148,13 @@ async function criarCliente(req, res) {
         rg_uf,
         rg_data_expedicao,
         nome_pai,
-        nome_mae
+        nome_mae,
+        orgao_id,
+        suborgao_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
+
 
     const [resultado] = await db.query(sql, [
       nome,
@@ -172,7 +181,10 @@ async function criarCliente(req, res) {
       rg_data_expedicao || null,
       nome_pai || null,
       nome_mae || null,
+      orgao_id || null,
+      suborgao_id || null,
     ]);
+
 
     return res
       .status(201)
@@ -216,8 +228,11 @@ async function listarClientes(req, res) {
           c.rg_data_expedicao,
           c.nome_pai,
           c.nome_mae,
-          
-        
+
+          c.orgao_id,
+          o.descricao  AS orgao_nome,
+          c.suborgao_id,
+          so.descricao AS suborgao_nome,
 
           -- total de empréstimos do cliente
           (
@@ -245,8 +260,13 @@ async function listarClientes(req, res) {
           ) AS parcelas_atrasadas
   
         FROM clientes c
+        LEFT JOIN orgaos o
+          ON o.id = c.orgao_id
+        LEFT JOIN suborgaos so
+          ON so.id = c.suborgao_id
         ORDER BY c.id DESC
       `;
+
   
       const [rows] = await db.query(sql);
   
@@ -291,6 +311,11 @@ async function detalhesCliente(req, res) {
           c.rg_data_expedicao,
           c.nome_pai,
           c.nome_mae,
+
+          c.orgao_id,
+          o.descricao  AS orgao_nome,
+          c.suborgao_id,
+          so.descricao AS suborgao_nome,
   
           (
             SELECT COUNT(*)
@@ -314,9 +339,14 @@ async function detalhesCliente(req, res) {
               AND p.data_prevista < CURDATE()
           ) AS parcelas_atrasadas
         FROM clientes c
+        LEFT JOIN orgaos o
+          ON o.id = c.orgao_id
+        LEFT JOIN suborgaos so
+          ON so.id = c.suborgao_id
         WHERE c.id = ?
         LIMIT 1
       `;
+
   
       const [rowsCliente] = await db.query(sqlCliente, [id]);
       if (!rowsCliente.length) {
@@ -401,7 +431,10 @@ async function editarCliente(req, res) {
       rg_data_expedicao,
       nome_pai,
       nome_mae,
+      orgao_id,
+      suborgao_id,
     } = req.body;
+
 
     const [existe] = await db.query("SELECT id FROM clientes WHERE id = ?", [id]);
     if (!existe.length) {
@@ -452,6 +485,10 @@ async function editarCliente(req, res) {
         .json({ error: "N�mero de dependentes inv�lido." });
     }
     numero_dependentes = dependentesNormalizado;
+
+    orgao_id = orgao_id ? parseInt(orgao_id, 10) : null;
+    suborgao_id = suborgao_id ? parseInt(suborgao_id, 10) : null;
+
 
     tipo_residencia = await validarDominioOpcional(
       "dom_tipo_residencia",
@@ -505,9 +542,12 @@ async function editarCliente(req, res) {
         rg_uf = ?,
         rg_data_expedicao = ?,
         nome_pai = ?,
-        nome_mae = ?
+        nome_mae = ?,
+        orgao_id = ?,
+        suborgao_id = ?
       WHERE id = ?
     `;
+
 
     const params = [
       nome,
@@ -534,8 +574,11 @@ async function editarCliente(req, res) {
       rg_data_expedicao || null,
       nome_pai || null,
       nome_mae || null,
+      orgao_id || null,
+      suborgao_id || null,
       id,
     ];
+
 
     await db.query(sql, params);
 

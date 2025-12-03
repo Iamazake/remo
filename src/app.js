@@ -17,6 +17,8 @@ const telefonesRoutes = require("./routes/telefonesRoutes");
 const tabelasJurosRoutes = require("./routes/tabelasJurosRoutes");
 const solicitacoesRoutes = require('./routes/solicitacoesRoutes');
 const authMiddleware = require('./middlewares/auth');
+const orgaosRoutes = require("./routes/orgaosRoutes");
+
 
 
 const app = express();
@@ -59,6 +61,7 @@ app.use("/api/pagamentos", pagamentosRoutes);
 app.use("/api/telefones", telefonesRoutes);
 app.use("/api/tabelas-juros", tabelasJurosRoutes);
 app.use('/api/solicitacoes', authMiddleware, solicitacoesRoutes);
+app.use("/api/orgaos", orgaosRoutes);
 
 
 // 404 genérico

@@ -27,6 +27,27 @@ const filtroInput =
 let solicitacoes = [];
 let modalResolve;
 
+
+tbody.addEventListener('click', (e) => {
+  const btn = e.target.closest('.link-cliente');
+  if (!btn) return;
+
+  const clienteId = btn.dataset.clienteId;
+  const solicitacaoId = btn.dataset.solicitacaoId;
+
+  const solicitacao = solicitacoes.find(
+    (s) => String(s.id) === String(solicitacaoId)
+  );
+
+  if (!solicitacao) {
+    exibirMensagem('Erro', 'Não foi possível localizar a solicitação.');
+    return;
+  }
+
+  abrirDetalhesSolicitacao(clienteId, solicitacao);
+});
+
+
 // elementos da NOVA SOLICITAÇÃO
 const btnNovaSolicitacao = document.getElementById('btnNovaSolicitacao');
 const modalSolicitacao = document.getElementById('modal-solicitacao');
@@ -50,6 +71,9 @@ const modalInputWrapper = document.getElementById('modal-extra-field');
 const modalInputLabel   = document.getElementById('modal-extra-label');
 const modalInputField   = document.getElementById('modal-extra-input');
 const modalInputHint    = document.getElementById('modal-extra-hint');
+const modalCliente = document.getElementById('modal-cliente');
+const btnFecharCliente = document.getElementById('btnFecharCliente');
+
 
 
 let clientes = [];
@@ -244,6 +268,17 @@ modalBtnConfirmar?.addEventListener('click', () => {
 modalInputField?.addEventListener('input', () => {
   modalInputField.classList.remove('input-erro');
 });
+
+btnFecharCliente?.addEventListener('click', () => {
+  modalCliente.classList.add('oculto');
+});
+
+modalCliente?.addEventListener('click', (e) => {
+  if (e.target === modalCliente) {
+    modalCliente.classList.add('oculto');
+  }
+});
+
 
 // NOVO: helper para usar o mesmo modal como alerta customizado
 async function exibirMensagem(titulo, mensagem) {
@@ -819,6 +854,11 @@ async function abrirDetalhesSolicitacao(clienteId, solicitacao) {
       <h4>Alertas automáticos</h4>
       ${alertsHtml}
     `;
+
+        if (modalCliente) {
+      modalCliente.classList.remove('oculto');
+    }
+
   } catch (err) {
     console.error('Erro ao abrir detalhes da solicitação', err);
     await exibirMensagem('Erro', 'Não foi possível carregar os detalhes da solicitação.');

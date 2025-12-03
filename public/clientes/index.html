@@ -238,6 +238,23 @@
             <button type="button" class="btn-inline" id="btnLimparEmprego">Remover vínculo</button>
           </div>
           <div class="form-grid two-columns">
+
+             <div class="form-grid two-columns">
+
+            <!-- ÓRGÃO / SUB-ÓRGÃO (NOVO) -->
+            <div class="form-field">
+              <label for="orgao_id">Órgão de pagamento</label>
+              <select id="orgao_id" name="orgao_id">
+                <option value="">Selecione...</option>
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label for="suborgao_id">Sub-órgão</label>
+              <select id="suborgao_id" name="suborgao_id" disabled>
+                <option value="">Selecione o órgão primeiro...</option>
+              </select>
+            </div>
             <div class="form-field">
               <label for="emp_empresa">Empresa</label>
               <input type="text" id="emp_empresa">

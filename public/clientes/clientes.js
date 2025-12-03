@@ -3,6 +3,7 @@ const API_DOMINIOS = "http://localhost:3000/api/dominios";
 const API_TELEFONES = "http://localhost:3000/api/telefones";
 const API_EMPREGO = "http://localhost:3000/api/empregos";
 const API_CONTAS = "http://localhost:3000/api/contas";
+const API_ORGAOS = "http://localhost:3000/api/orgaos";
 
 const DOMINIOS_POR_SELECT = [
   { id: "situacao_profissional", tipo: "dom_situacao_profissional" },
@@ -43,6 +44,10 @@ const campoTelefone = document.getElementById("telefone");
 const campoSituacaoProf = document.getElementById("situacao_profissional");
 const campoRendaMensal = document.getElementById("renda_mensal");
 const erroCPFSpan = document.getElementById("erro-cpf");
+// Campos de órgão / sub-órgão (Passo 5)
+const campoOrgao = document.getElementById("orgao_id");
+const campoSuborgao = document.getElementById("suborgao_id");
+
 
 function limparErrosPasso1() {
   [
@@ -344,6 +349,68 @@ function preencherSelect(id, tipoDominio) {
   select.innerHTML = gerarOptionsDominio(tipoDominio, select.value);
 }
 
+// ================= ORGAOS / SUBORGAOS =================
+
+async function carregarOrgaos(selectedId = null) {
+  if (!campoOrgao) return;
+
+  try {
+    const resp = await authFetch(API_ORGAOS);
+    if (!resp.ok) throw new Error("Erro ao buscar órgãos");
+    const orgaos = await resp.json();
+
+    campoOrgao.innerHTML = '<option value="">Selecione...</option>';
+
+    orgaos.forEach((orgao) => {
+      const opt = document.createElement("option");
+      opt.value = orgao.id;
+      opt.textContent = orgao.descricao;
+      campoOrgao.appendChild(opt);
+    });
+
+    if (selectedId) {
+      campoOrgao.value = String(selectedId);
+    }
+  } catch (err) {
+    console.error("Erro em carregarOrgaos:", err);
+  }
+}
+
+async function carregarSuborgaos(orgaoId, selectedSubId = null) {
+  if (!campoSuborgao) return;
+
+  if (!orgaoId) {
+    campoSuborgao.innerHTML =
+      '<option value="">Selecione o órgão primeiro...</option>';
+    campoSuborgao.disabled = true;
+    return;
+  }
+
+  try {
+    const resp = await authFetch(`${API_ORGAOS}/${orgaoId}/suborgaos`);
+    if (!resp.ok) throw new Error("Erro ao buscar subórgãos");
+    const suborgaos = await resp.json();
+
+    campoSuborgao.innerHTML = '<option value="">Selecione...</option>';
+
+    suborgaos.forEach((sub) => {
+      const opt = document.createElement("option");
+      opt.value = sub.id;
+      opt.textContent = sub.descricao;
+      campoSuborgao.appendChild(opt);
+    });
+
+    campoSuborgao.disabled = false;
+
+    if (selectedSubId) {
+      campoSuborgao.value = String(selectedSubId);
+    }
+  } catch (err) {
+    console.error("Erro em carregarSuborgaos:", err);
+  }
+}
+
+
 function atualizarStepsUI() {
   document.querySelectorAll(".form-step").forEach(step => {
     step.classList.toggle("active", Number(step.dataset.step) === stepAtual);
@@ -400,9 +467,21 @@ function abrirFormulario() {
   document.getElementById("id").value = "";
   stepAtual = 1;
   resetEstadosComplementares();
+
+  // Órgão / Sub-órgão para NOVO cliente
+  if (campoOrgao) {
+    carregarOrgaos(null);
+  }
+  if (campoSuborgao) {
+    campoSuborgao.innerHTML =
+      '<option value="">Selecione o órgão primeiro...</option>';
+    campoSuborgao.disabled = true;
+  }
+
   atualizarStepsUI();
   document.getElementById("modal").style.display = "flex";
 }
+
 
 function fecharFormulario() {
   document.getElementById("modal").style.display = "none";
@@ -445,6 +524,25 @@ function preencherFormularioCliente(c) {
   document.getElementById("nome_mae").value = c.nome_mae || "";
 }
 
+async function preencherOrgaoESuborgao(cliente) {
+  if (!campoOrgao || !campoSuborgao) return;
+
+  const orgaoId = cliente.orgao_id || null;
+  const suborgaoId = cliente.suborgao_id || null;
+
+  // Carrega órgãos, já selecionando o do cliente
+  await carregarOrgaos(orgaoId);
+
+  if (orgaoId) {
+    await carregarSuborgaos(orgaoId, suborgaoId);
+  } else {
+    campoSuborgao.innerHTML =
+      '<option value="">Selecione o órgão primeiro...</option>';
+    campoSuborgao.disabled = true;
+  }
+}
+
+
 function coletarDadosCliente() {
   return {
     nome: document.getElementById("nome").value,
@@ -474,6 +572,9 @@ function coletarDadosCliente() {
     rg_data_expedicao: document.getElementById("rg_data_expedicao").value,
     nome_pai: document.getElementById("nome_pai").value,
     nome_mae: document.getElementById("nome_mae").value,
+    orgao_id: campoOrgao ? campoOrgao.value : "",
+    suborgao_id: campoSuborgao ? campoSuborgao.value : "",
+
   };
 }
 
@@ -692,10 +793,15 @@ async function editar(id) {
 
     abrirFormulario();
     preencherFormularioCliente(cliente);
+
+    // Órgão / Sub-órgão do cliente
+    await preencherOrgaoESuborgao(cliente);
+
     inicializarTelefones(telefones);
     inicializarContas(contas);
     preencherEmpregoForm(empregos[0]);
     preencherRenda(renda);
+
   } catch (err) {
     console.error(err);
     alert("Não foi possível carregar os dados do cliente.");
@@ -891,6 +997,13 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btnProximoStep")?.addEventListener("click", () => irParaStep(stepAtual + 1));
   document.querySelectorAll(".step-btn").forEach(btn => {
     btn.addEventListener("click", () => irParaStep(Number(btn.dataset.step)));
+
+    // Quando trocar o órgão, recarrega os subórgãos
+  campoOrgao?.addEventListener("change", () => {
+    const orgaoId = campoOrgao.value || null;
+    carregarSuborgaos(orgaoId);
+  });
+
   });
 
   document.getElementById("btnAddTelefone")?.addEventListener("click", adicionarTelefone);
